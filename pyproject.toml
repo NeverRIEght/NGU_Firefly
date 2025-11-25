@@ -1,0 +1,16 @@
+[project]
+name = "video-encoder"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Mihail Komarov",email = "michaelkomarov03@gmail.com"}
+]
+requires-python = ">=3.13.5"
+dependencies = [
+    "tqdm (>=4.67.1,<5.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

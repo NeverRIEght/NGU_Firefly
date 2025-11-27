@@ -35,7 +35,6 @@ log.info("\n\n-----STARTING SESSION-----\n\n")
 import os
 import subprocess
 import json
-from tqdm import tqdm
 
 VIDEO_DURATION_SECONDS_TOLERANCE = 0.2
 THREADS_IF_SILENT = 1
@@ -260,8 +259,8 @@ def encode_video_with_ffmpeg(
 
 
 def main():
-    base_directory = Path("/Users/michaelkomarov/Documents/encode/input")
-    output_directory = Path("/Users/michaelkomarov/Documents/encode/output")
+    base_directory = Path("/Users/michaelkomarov/Documents/userdata/encode/input")
+    output_directory = Path("/Users/michaelkomarov/Documents/userdata/encode/output")
     is_silent = False
 
     # Settings for encoding:
@@ -286,6 +285,7 @@ def main():
             video_files_upper = set(source_category_dir.rglob('*.MP4'))
             video_files = video_files_lower.union(video_files_upper)
             for video_file in video_files:
+                log.info(f"Composing task for '{video_file}'...")
                 output_video_path = destination_category_dir / video_file.name
                 all_tasks.append({
                     "input_path": video_file,
@@ -304,23 +304,27 @@ def main():
     log.info(f"Found {total_files_to_process} files to encode in {len(encoding_settings)} categories.")
 
     try:
-        with tqdm(total=total_files_to_process, desc="Encoding progress", unit="file", position=0, leave=True,
-                  colour='blue') as pbar_total:
-            for task in all_tasks:
-                log.info("-" * 20)
-                log.info(
-                    f"Processing file: '{task['input_path']}' (CRF={task['crf']}, Preset={task['preset']})")
-                success = encode_video_with_ffmpeg(
-                    input_video_path=task['input_path'],
-                    output_video_path=task['output_path'],
-                    crf=task['crf'],
-                    preset=task['preset'],
-                    is_silent=is_silent
-                )
-                if success:
-                    log.info(f"Encoding finished: {task['output_path'].name}")
-                    pbar_total.update(1)
-                log.info("-" * 20)
+        files_processed = 0
+
+        for task in all_tasks:
+            log.info("-" * 20)
+            log.info(
+                f"Processing file: '{task['input_path']}' (CRF={task['crf']}, Preset={task['preset']})")
+
+            success = encode_video_with_ffmpeg(
+                input_video_path=task['input_path'],
+                output_video_path=task['output_path'],
+                crf=task['crf'],
+                preset=task['preset'],
+                is_silent=is_silent
+            )
+
+            if success:
+                files_processed += 1
+                log.info(f"Encoding finished: {task['output_path'].name}")
+                log.info(f"Progress: {files_processed} of {total_files_to_process} files completed.")
+
+            log.info("-" * 20)
 
         log.info(f"Encoding completed. Total files processed: {total_files_to_process}.")
 

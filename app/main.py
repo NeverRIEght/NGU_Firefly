@@ -127,9 +127,9 @@ def main():
     """
     # --- НАСТРОЙКИ ---
     # Путь к исходной папке с видео
-    SOURCE_VIDEOS_DIR = Path("/Users/michaelkomarov/Documents/encode/input_mp4s")  # Укажи свой путь
+    SOURCE_VIDEOS_DIR = Path("/Users/michaelkomarov/Documents/userdata/encode/input")  # Укажи свой путь
     # Базовая папка для отсортированных видео
-    DESTINATION_BASE_DIR = Path("/Users/michaelkomarov/Documents/encode/input")  # Укажи свой путь
+    DESTINATION_BASE_DIR = Path("/Users/michaelkomarov/Documents/userdata/encode/input")  # Укажи свой путь
 
     # Определения категорий разрешения и их порогов (наибольшая сторона)
     RESOLUTION_CATEGORIES = [

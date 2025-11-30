@@ -1,4 +1,6 @@
 import logging
+from dotenv import load_dotenv, find_dotenv
+import os
 from pathlib import Path
 
 logs_dir = Path("../logs")
@@ -131,7 +133,8 @@ def compare_folder_sizes(folder1_path: Path, folder2_path: Path):
 
 
 if __name__ == "__main__":
-    original_videos_dir = Path("/Users/michaelkomarov/Documents/encode/input")
-    encoded_videos_dir = Path("/Users/michaelkomarov/Documents/encode/output")
+    load_dotenv(find_dotenv())
+    original_videos_dir = Path(os.getenv("INPUT_DIR"))
+    encoded_videos_dir = Path(os.getenv("OUTPUT_DIR"))
 
     compare_folder_sizes(original_videos_dir, encoded_videos_dir)

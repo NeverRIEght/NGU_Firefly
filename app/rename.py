@@ -76,8 +76,8 @@ def process_and_copy_smaller_files(folder1_path: Path, folder2_path: Path, desti
             log.error(f"Ошибка при обработке файлов {path1} и {path2}: {e}")
 
 if __name__ == "__main__":
-    original_videos_dir = Path("/Users/michaelkomarov/Documents/encode/input")
-    encoded_videos_dir = Path("/Users/michaelkomarov/Documents/encode/output")
+    original_videos_dir = Path("E:\\userdata\\encode\\input")
+    encoded_videos_dir = Path("E:\\userdata\\encode\\output")
     # Создаем новую папку для итоговых файлов
     final_videos_dir = Path("/Users/michaelkomarov/Documents/encode/final")
     process_and_copy_smaller_files(original_videos_dir, encoded_videos_dir, final_videos_dir)

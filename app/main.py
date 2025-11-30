@@ -95,30 +95,44 @@ def create_directory_if_not_exists(directory_path: Path):
 def copy_files_to_directory(source_video_file: Path, source_metadata_file: Path | None,
                             destination_directory: Path):
     """
-    Копирует видеофайл и, если есть, соответствующий файл метаданных в указанную папку.
-
-    Args:
-        source_video_file: Объект Path, указывающий на исходный видеофайл.
-        source_metadata_file: Объект Path, указывающий на исходный файл метаданных,
-                              или None, если его нет.
-        destination_directory: Объект Path, указывающий на папку назначения.
+    Копирует видеофайл и, если есть, соответствующий файл метаданных,
+    пропуская файлы, которые уже существуют в папке назначения.
     """
-    try:
-        # Копируем видеофайл
-        shutil.copy2(source_video_file, destination_directory / source_video_file.name)
-        print(f"  Копирование видео: {source_video_file.name} -> {destination_directory}")
 
-        # Если есть файл метаданных, копируем его в подпапку 'metadata' в целевой директории
-        if source_metadata_file:
-            destination_metadata_dir = destination_directory / "metadata"
-            create_directory_if_not_exists(destination_metadata_dir)  # Создаем папку metadata
-            shutil.copy2(source_metadata_file, destination_metadata_dir / source_metadata_file.name)
-            print(f"  Копирование метаданных: {source_metadata_file.name} -> {destination_metadata_dir}")
+    # --- Проверка и копирование видеофайла ---
+    dest_video_path = destination_directory / source_video_file.name
+
+    if dest_video_path.is_file():
+        # Добавляем условие пропуска
+        print(f"  ➡️ Видеофайл {source_video_file.name} уже существует в целевой папке. Пропуск.")
+    else:
+        try:
+            # Копируем видеофайл
+            shutil.copy2(source_video_file, dest_video_path)
+            print(f"  Копирование видео: {source_video_file.name} -> {destination_directory}")
+        except shutil.Error as e:
+            print(f"  ❌ Ошибка при копировании видео {source_video_file.name}: {e}")
+            return  # Выходим, если не удалось скопировать видео
+
+    # --- Проверка и копирование метаданных ---
+    if source_metadata_file:
+        destination_metadata_dir = destination_directory / "metadata"
+        create_directory_if_not_exists(destination_metadata_dir)  # Создаем папку metadata
+
+        dest_metadata_path = destination_metadata_dir / source_metadata_file.name
+
+        if dest_metadata_path.is_file():
+            # Добавляем условие пропуска для метаданных
+            print(f"  ➡️ Метаданные {source_metadata_file.name} уже существуют. Пропуск.")
         else:
-            print(f"  Файл метаданных для {source_video_file.name} не найден, пропуск копирования метаданных.")
-
-    except shutil.Error as e:
-        print(f"Ошибка при копировании файлов для {source_video_file.name}: {e}")
+            try:
+                # Копируем метаданные
+                shutil.copy2(source_metadata_file, dest_metadata_path)
+                print(f"  Копирование метаданных: {source_metadata_file.name} -> {destination_metadata_dir}")
+            except shutil.Error as e:
+                print(f"  ❌ Ошибка при копировании метаданных {source_metadata_file.name}: {e}")
+    else:
+        print(f"  Файл метаданных для {source_video_file.name} не найден, пропуск копирования метаданных.")
 
 
 def main():
@@ -127,9 +141,9 @@ def main():
     """
     # --- НАСТРОЙКИ ---
     # Путь к исходной папке с видео
-    SOURCE_VIDEOS_DIR = Path("/Users/michaelkomarov/Documents/userdata/encode/input")  # Укажи свой путь
+    SOURCE_VIDEOS_DIR = Path("E:\\userdata\\encode\\input")  # Укажи свой путь
     # Базовая папка для отсортированных видео
-    DESTINATION_BASE_DIR = Path("/Users/michaelkomarov/Documents/userdata/encode/input")  # Укажи свой путь
+    DESTINATION_BASE_DIR = Path("E:\\userdata\\encode\\input")  # Укажи свой путь
 
     # Определения категорий разрешения и их порогов (наибольшая сторона)
     RESOLUTION_CATEGORIES = [

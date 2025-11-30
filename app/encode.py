@@ -35,6 +35,7 @@ log.info("\n\n-----STARTING SESSION-----\n\n")
 import os
 import subprocess
 import json
+from dotenv import load_dotenv, find_dotenv
 
 VIDEO_DURATION_SECONDS_TOLERANCE = 0.2
 THREADS_IF_SILENT = 1
@@ -259,8 +260,9 @@ def encode_video_with_ffmpeg(
 
 
 def main():
-    base_directory = Path("/Users/michaelkomarov/Documents/userdata/encode/input")
-    output_directory = Path("/Users/michaelkomarov/Documents/userdata/encode/output")
+    load_dotenv(find_dotenv())
+    base_directory = Path(os.getenv("INPUT_DIR"))
+    output_directory = Path(os.getenv("OUTPUT_DIR"))
     is_silent = False
 
     # Settings for encoding:

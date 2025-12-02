@@ -1,0 +1,77 @@
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from datetime import datetime
+
+class Resolution(BaseModel):
+    width: int = Field(..., description="Width in pixels")
+    height: int = Field(..., description="Height in pixels")
+
+
+class FfmpegMetadata(BaseModel):
+    pixel_aspect_ratio: str
+    pixel_format: str
+    chroma_sample_location: str
+    color_primaries: str
+    color_trc: str
+    colorspace: str
+    profile: str
+    level: float
+
+
+class EncoderSettings(BaseModel):
+    encoder: str
+    preset: str
+    crf: int
+    pools: int
+
+
+class Environment(BaseModel):
+    script_version: str
+    ffmpeg_version: str
+    encoder_version: str
+    cpu_name: str
+    cpu_threads: int
+
+class SourceVideo(BaseModel):
+    file_name: str
+    file_size_megabytes: float
+    resolution: Resolution
+    video_duration_seconds: float
+    codec: str
+    average_bitrate_kilobits_per_second: int
+    fps: float
+    actual_frame_count: int
+    sha256_hash: str
+    ffmpeg_metadata: FfmpegMetadata
+
+
+class EncodingStage(BaseModel):
+    stage_number_from_1: int
+    stage_name: str
+    crf_range_min: int
+    crf_range_max: int
+    last_vmaf: float
+    last_crf: int
+
+
+class Iteration(BaseModel):
+    file_name: str
+    file_size_megabytes: float
+    video_duration_seconds: float
+    codec: str
+    encoder_settings: EncoderSettings  
+    source_to_encoded_vmaf_percent: float
+
+    encoding_finished_datetime: datetime
+
+    encoding_time_seconds: float
+    actual_frame_count: int
+    sha256_hash: str
+    ffmpeg_command_used: str
+    environment: Environment  
+    ffmpeg_metadata: FfmpegMetadata
+
+class VideoEncodingJob(BaseModel):
+    source_video: SourceVideo
+    encoding_stage: EncodingStage
+    iterations: List[Iteration]

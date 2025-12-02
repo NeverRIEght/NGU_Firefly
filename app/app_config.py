@@ -1,0 +1,29 @@
+from pydantic import BaseModel, Field
+
+class AppConfig(BaseModel):
+    app_name: str = Field("video_encoder", description="The name of the application")
+    version: str = Field("0.2.0", description="The version of the application")
+    input_dir: str = Field(..., description="Directory with initial videos of mp4 format. Will be scanned recursively without limitation of depth.")
+    output_dir: str = Field(..., description="Directory where processed videos will be saved.")
+    is_silent: bool = Field(False, description="Silent mode, which uses only one thread.")
+    crf_min: int = Field(14, description="CRF values for binary search - minimum")
+    crf_max: int = Field(28, description="CRF values for binary search - maximum")
+    encode_preset: str = Field("veryslow", description="Encode preset for libx265 encoder")
+
+
+def load_config_from_env() -> AppConfig:
+    import os
+    from dotenv import load_dotenv, find_dotenv
+
+    load_dotenv(find_dotenv())
+
+    config = AppConfig(
+        input_dir=os.getenv("INPUT_DIR", ""),
+        output_dir=os.getenv("OUTPUT_DIR", ""),
+        is_silent=os.getenv("IS_SILENT", "False").lower() in ("true", "True", "1", "yes"),
+        crf_min=int(os.getenv("CRF_MIN", "14")),
+        crf_max=int(os.getenv("CRF_MAX", "28")),
+        encode_preset=os.getenv("ENCODE_PRESET", "veryslow"),
+    )
+
+    return config

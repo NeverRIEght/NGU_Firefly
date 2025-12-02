@@ -1,4 +1,6 @@
+import threading
 from pydantic import BaseModel, Field
+from typing import Optional
 
 class AppConfig(BaseModel):
     app_name: str = Field("video_encoder", description="The name of the application")
@@ -27,3 +29,20 @@ def load_config_from_env() -> AppConfig:
     )
 
     return config
+
+
+class ConfigManager:
+    _instance: Optional[AppConfig] = None
+    _lock = threading.Lock()
+
+    def __init__(self):
+        raise RuntimeError("Constructor is not allowed. Use get_config() method.")
+
+    @classmethod
+    def get_config(cls) -> AppConfig:
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = load_config_from_env()
+
+        return cls._instance

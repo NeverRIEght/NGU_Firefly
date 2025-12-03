@@ -3,8 +3,8 @@ from typing import List, Optional
 from datetime import datetime
 
 class Resolution(BaseModel):
-    width: int = Field(..., description="Width in pixels")
-    height: int = Field(..., description="Height in pixels")
+    width_px: int = Field(..., description="Width in pixels")
+    height_px: int = Field(..., description="Height in pixels")
 
 
 class FfmpegMetadata(BaseModel):
@@ -48,10 +48,10 @@ class SourceVideo(BaseModel):
 class EncodingStage(BaseModel):
     stage_number_from_1: int
     stage_name: str
-    crf_range_min: int
-    crf_range_max: int
-    last_vmaf: float
-    last_crf: int
+    crf_range_min: Optional[int]
+    crf_range_max: Optional[int]
+    last_vmaf: Optional[float]
+    last_crf: Optional[float]
 
 
 class Iteration(BaseModel):
@@ -71,7 +71,14 @@ class Iteration(BaseModel):
     environment: Environment  
     ffmpeg_metadata: FfmpegMetadata
 
-class VideoEncodingJob(BaseModel):
+class EncoderDataJson(BaseModel):
     source_video: SourceVideo
     encoding_stage: EncodingStage
     iterations: List[Iteration]
+
+class EncoderJobContext(BaseModel):
+    source_file_path: Path
+    metadata_json_file_path: Path
+    is_locked: bool = False
+    is_complete: bool = False
+    report_data: Optional[EncoderDataJson]

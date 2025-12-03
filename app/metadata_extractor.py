@@ -47,7 +47,8 @@ def extract(job_context: EncoderJobContext) -> EncoderJobContext:
         '-v', 'error',
         '-select_streams', 'v',
         '-show_entries',
-        'stream=width,height,codec_name,r_frame_rate,avg_frame_rate,tags,bit_rate:format=size,duration,bit_rate,nb_frames',
+        'stream=width,height,codec_name,r_frame_rate,avg_frame_rate'
+        + ',tags,bit_rate:format=size,duration,bit_rate,nb_frames',
         '-of', 'json',
         str(job_context.source_file_path),
     ]
@@ -81,7 +82,7 @@ def extract(job_context: EncoderJobContext) -> EncoderJobContext:
     duration_seconds = _extract_video_duration_seconds(format_data)
     if duration_seconds == 0.0:
         log.warning(f"Duration could not be determined for {job_context.source_file_path}, defaulting to 0.0")
-    job_context.report_data.source_video.duration_seconds = duration_seconds
+    job_context.report_data.source_video.video_duration_seconds = duration_seconds
 
     bitrate_kbps = _extract_bitrate_kbps(stream_data, format_data)
     if bitrate_kbps == 0.0:
@@ -103,13 +104,15 @@ def extract(job_context: EncoderJobContext) -> EncoderJobContext:
     pixel_aspect_ratio = _extract_pixel_aspect_ratio(stream_data, tags)
     if not pixel_aspect_ratio:
         log.warning(
-            f"Pixel aspect ratio could not be determined for {job_context.source_file_path}, defaulting to empty string"
+            f"Pixel aspect ratio could not be determined for {job_context.source_file_path}, defaulting to None"
         )
+        pixel_aspect_ratio = None
     job_context.report_data.source_video.ffmpeg_metadata.pixel_aspect_ratio = pixel_aspect_ratio
 
     profile = _extract_profile(stream_data)
     if not profile:
-        log.warning(f"Profile could not be determined for {job_context.source_file_path}, defaulting to empty string")
+        log.warning(f"Profile could not be determined for {job_context.source_file_path}, defaulting to None")
+        profile = None
     job_context.report_data.source_video.ffmpeg_metadata.profile = profile
 
     return job_context

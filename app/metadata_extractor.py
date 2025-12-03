@@ -7,7 +7,7 @@ import math
 import subprocess
 
 from app.hashing_service import calculate_sha256_hash
-from model import EncoderJobContext, Resolution, SourceVideo
+from model import EncoderJobContext, Resolution, SourceVideo, FfmpegMetadata
 
 
 def extract(job_context: EncoderJobContext) -> EncoderJobContext:
@@ -22,8 +22,9 @@ def extract(job_context: EncoderJobContext) -> EncoderJobContext:
         '-v', 'error',
         '-select_streams', 'v',
         '-show_entries',
-        'stream=width,height,codec_name,r_frame_rate,avg_frame_rate'
-        + ',tags,bit_rate:format=size,duration,bit_rate,nb_frames',
+        'stream=width,height,codec_name,r_frame_rate,avg_frame_rate,tags,bit_rate,profile,'
+        + 'pix_fmt,chroma_location,color_primaries,color_transfer,color_space,level'
+        + ':format=size,duration,bit_rate,nb_frames',
         '-of', 'json',
         str(job_context.source_file_path),
     ]
@@ -46,71 +47,45 @@ def extract(job_context: EncoderJobContext) -> EncoderJobContext:
     format_data = ffprobe_output.get('format', {})
     tags = stream_data.get('tags', {})
 
-    fps_value = _extract_fps(stream_data)
-    if fps_value == 0.0:
-        log.warning(f"FPS could not be determined for {job_context.source_file_path}, defaulting to 0.0")
-
-    file_size_mb = _extract_file_size_megabytes(format_data)
-
-    duration_seconds = _extract_video_duration_seconds(format_data)
-    if duration_seconds == 0.0:
-        log.warning(f"Duration could not be determined for {job_context.source_file_path}, defaulting to 0.0")
-
-    bitrate_kbps = _extract_bitrate_kbps(stream_data, format_data)
-    if bitrate_kbps == 0.0:
-        log.warning(f"Bitrate could not be determined for {job_context.source_file_path}, defaulting to 0.0")
-
-    codec_name = _extract_codec_name(stream_data)
-    if not codec_name:
-        log.warning(
-            f"Codec name could not be determined for {job_context.source_file_path}, defaulting to None")
-        codec_name = None
-
-    width, height = _extract_resolution(stream_data)
-    if width == 0 or height == 0:
-        log.warning(f"Resolution could not be determined for {job_context.source_file_path}, defaulting to 0x0")
-    resolution_object = Resolution(
-        width_px=width,
-        height_px=height
-    )
-
-    pixel_aspect_ratio = _extract_pixel_aspect_ratio(stream_data, tags)
-    if not pixel_aspect_ratio:
-        log.warning(
-            f"Pixel aspect ratio could not be determined for {job_context.source_file_path}, defaulting to None"
-        )
-        pixel_aspect_ratio = None
-
-    profile = _extract_profile(stream_data)
-    if not profile:
-        log.warning(f"Profile could not be determined for {job_context.source_file_path}, defaulting to None")
-        profile = None
-
-    hash = calculate_sha256_hash(job_context.source_file_path)
+    duration_seconds = _extract_video_duration_seconds(job_context, format_data)
+    fps_value = _extract_fps(job_context, stream_data)
 
     source_video = SourceVideo(
         file_name=job_context.source_file_path.stem,
-        file_size_megabytes=file_size_mb,
-        resolution=resolution_object,
+        file_size_megabytes=_extract_file_size_megabytes(format_data),
+        resolution=_extract_resolution(stream_data),
         video_duration_seconds=duration_seconds,
-        codec=codec_name,
-        average_bitrate_kilobits_per_second=bitrate_kbps,
+        codec=_extract_codec_name(job_context, stream_data),
+        average_bitrate_kilobits_per_second=_extract_bitrate_kbps(job_context, stream_data, format_data),
         fps=fps_value,
-        actual_frame_count=math.floor(fps_value * duration_seconds),  # Can be calculated: fps * duration
-        sha256_hash=hash
+        actual_frame_count=math.floor(fps_value * duration_seconds),
+        sha256_hash=calculate_sha256_hash(job_context.source_file_path)
+    )
+
+    metadata = FfmpegMetadata(
+        pixel_aspect_ratio=_extract_pixel_aspect_ratio(job_context, stream_data, tags),
+        profile=_extract_profile(job_context, stream_data),
+        pixel_format=_extract_pixel_format(job_context, stream_data),
+        chroma_sample_location=_extract_chroma_sample_location(job_context, stream_data),
+        color_primaries=_extract_color_primaries(job_context, stream_data),
+        color_trc=_extract_color_trc(job_context, stream_data),
+        colorspace=_extract_colorspace(job_context, stream_data),
+        level=_extract_level(job_context, stream_data)
     )
 
     job_context.report_data.source_video = source_video
+    job_context.report_data.source_video.ffmpeg_metadata = metadata
 
     return job_context
 
 
-def _extract_fps(stream_data) -> float:
+def _extract_fps(job_context: EncoderJobContext, stream_data) -> float:
     fps_fraction = stream_data.get('avg_frame_rate', '0/1')
     try:
         num, den = map(int, fps_fraction.split('/'))
         fps = num / den if den != 0 else 0.0
     except ValueError:
+        log.error(f"FPS could not be determined for {job_context.source_file_path}, defaulting to 0.0")
         fps = 0.0
     return fps
 
@@ -121,37 +96,118 @@ def _extract_file_size_megabytes(format_data) -> float:
     return size_megabytes
 
 
-def _extract_video_duration_seconds(format_data) -> float:
+def _extract_video_duration_seconds(job_context: EncoderJobContext, format_data) -> float:
     duration_str = format_data.get('duration', '0.0')
     try:
         duration_seconds = float(duration_str)
     except ValueError:
+        log.warning(f"Duration could not be determined for {job_context.source_file_path}, defaulting to 0.0")
         duration_seconds = 0.0
     return duration_seconds
 
 
-def _extract_bitrate_kbps(stream_data, format_data):
+def _extract_bitrate_kbps(job_context: EncoderJobContext, stream_data, format_data):
     bitrate_str = stream_data.get('bit_rate') or format_data.get('bit_rate', 0)
     try:
         bitrate_kbps = int(bitrate_str) / 1000
     except ValueError:
+        log.warning(f"Bitrate could not be determined for {job_context.source_file_path}, defaulting to 0.0")
         bitrate_kbps = 0.0
     return bitrate_kbps
 
 
-def _extract_codec_name(stream_data) -> str:
-    return stream_data.get('codec_name', '')
+def _extract_codec_name(job_context: EncoderJobContext, stream_data) -> str:
+    extracted_codec = stream_data.get('codec_name', '')
+    if extracted_codec is None:
+        log.warning(f"Codec name could not be determined for {job_context.source_file_path}, defaulting to None")
+
+    return extracted_codec
 
 
-def _extract_resolution(stream_data) -> tuple[int, int]:
+def _extract_resolution(stream_data) -> Resolution:
     width = int(stream_data.get('width', 0))
     height = int(stream_data.get('height', 0))
-    return width, height
+
+    if width is None or height is None:
+        log.warning("Width or height is missing, defaulting to 0")
+        width = width or 0
+        height = height or 0
+
+    extracted_resolution = Resolution(
+        width_px=width,
+        height_px=height
+    )
+
+    return extracted_resolution
 
 
-def _extract_pixel_aspect_ratio(stream_data, tags) -> str:
-    return stream_data.get('display_aspect_ratio', tags.get('display_aspect_ratio'))
+def _extract_pixel_aspect_ratio(job_context: EncoderJobContext, stream_data, tags) -> str:
+    par = stream_data.get('display_aspect_ratio') or tags.get('display_aspect_ratio')
+    if par is None:
+        f"Pixel aspect ratio could not be determined for {job_context.source_file_path}, defaulting to 1:1"
+        return "1:1"
+
+    return par
 
 
-def _extract_profile(stream_data) -> str:
-    return stream_data.get('profile')
+def _extract_profile(job_context: EncoderJobContext, stream_data) -> str | None:
+    extracted_profile = stream_data.get('profile')
+    if extracted_profile is None:
+        log.warning(f"Profile could not be determined for {job_context.source_file_path}, defaulting to None")
+
+    return extracted_profile
+
+
+def _extract_pixel_format(job_context: EncoderJobContext, stream_data) -> str | None:
+    extracted_pixel_format = stream_data.get('pix_fmt')
+    if extracted_pixel_format is None:
+        log.warning(f"Pixel format could not be determined for {job_context.source_file_path}, defaulting to None")
+
+    return extracted_pixel_format
+
+
+def _extract_chroma_sample_location(job_context: EncoderJobContext, stream_data) -> str | None:
+    extracted_chroma = stream_data.get('chroma_location')
+    if extracted_chroma is None:
+        log.warning(
+            f"Chroma sample location could not be determined for {job_context.source_file_path}, defaulting to None")
+
+    return extracted_chroma
+
+
+def _extract_color_primaries(job_context: EncoderJobContext, stream_data) -> str | None:
+    extracted_primaries = stream_data.get('color_primaries')
+    if extracted_primaries is None:
+        log.warning(f"Color primaries could not be determined for {job_context.source_file_path}, defaulting to bt709")
+        return "bt709"
+
+    return extracted_primaries
+
+
+def _extract_color_trc(job_context: EncoderJobContext, stream_data) -> str | None:
+    extracted_trc = stream_data.get('color_transfer')
+    if extracted_trc is None:
+        log.warning(
+            f"Color TRC (Transfer Characteristics) could not be determined for {job_context.source_file_path},"
+            f"defaulting to bt709")
+        return "bt709"
+
+    return extracted_trc
+
+
+def _extract_colorspace(job_context: EncoderJobContext, stream_data) -> str | None:
+    extracted_colorspace = stream_data.get('color_space')
+    if extracted_colorspace is None:
+        log.warning(
+            f"Color space could not be determined for {job_context.source_file_path}, defaulting to bt709")
+        return "bt709"
+
+    return extracted_colorspace
+
+
+def _extract_level(job_context: EncoderJobContext, stream_data) -> str | None:
+    extracted_level = stream_data.get('level')
+    if extracted_level is None:
+        log.warning(f"Codec level could not be determined for {job_context.source_file_path}, defaulting to None")
+
+    return extracted_level

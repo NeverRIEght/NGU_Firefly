@@ -17,7 +17,7 @@ class FfmpegMetadata(BaseModel):
     color_trc: Optional[str] = None
     colorspace: Optional[str] = None
     profile: Optional[str] = None
-    level: Optional[str] = None
+    level: Optional[int] = None
 
 
 class EncoderSettings(BaseModel):

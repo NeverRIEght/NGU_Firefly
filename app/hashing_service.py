@@ -1,9 +1,9 @@
-import hashlib
-from pathlib import Path
 import logging
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+
+import hashlib
+from pathlib import Path
 
 CHUNK_SIZE = 65536
 

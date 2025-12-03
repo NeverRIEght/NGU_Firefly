@@ -1,3 +1,7 @@
+import logging
+
+log = logging.getLogger(__name__)
+
 import model
 from pathlib import Path
 
@@ -13,10 +17,10 @@ def serialize_to_json(job_object: model.EncoderDataJson, output_path: str | Path
         with open(p, "w", encoding="utf-8") as f:
             f.write(json_string)
 
-        print(f"Json saved successfully: {p.resolve()}")
+        log.info(f"Json saved successfully: {p.resolve()}")
 
     except Exception as e:
-        print(f"Error serializing json. Output path: {output_path}. Exception: {e}")
+        log.error(f"Error serializing json. Output path: {output_path}. Exception: {e}")
 
 
 def load_from_json(input_path: str | Path) -> model.EncoderDataJson:
@@ -29,7 +33,7 @@ def load_from_json(input_path: str | Path) -> model.EncoderDataJson:
         json_content = p.read_text(encoding="utf-8")
         job_object = model.EncoderDataJson.model_validate_json(json_content)
 
-        print(f"Json loaded: {p.resolve()}")
+        log.info(f"Json loaded: {p.resolve()}")
         return job_object
 
     except Exception as e:

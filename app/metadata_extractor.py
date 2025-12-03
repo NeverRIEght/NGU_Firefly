@@ -1,38 +1,13 @@
-import json
 import logging
+
+log = logging.getLogger(__name__)
+
+import json
+import math
 import subprocess
-from pathlib import Path
 
-from model import EncoderJobContext
-
-logs_dir = Path("../logs")
-logs_dir.mkdir(exist_ok=True)
-
-log = logging.getLogger("metadata_extractor")
-log.setLevel(logging.INFO)
-
-if log.hasHandlers():
-    log.handlers.clear()
-
-logs_formatter = logging.Formatter('[%(asctime)s][%(levelname)s]: %(message)s')
-
-all_logs_handler = logging.FileHandler(logs_dir / "full.log", mode='a', encoding='utf-8')
-all_logs_handler.setLevel(logging.INFO)
-all_logs_formatter = logs_formatter
-all_logs_handler.setFormatter(all_logs_formatter)
-log.addHandler(all_logs_handler)
-
-error_logs_handler = logging.FileHandler(logs_dir / "errors.log", mode='a', encoding='utf-8')
-error_logs_handler.setLevel(logging.ERROR)
-error_logs_formatter = logs_formatter
-error_logs_handler.setFormatter(error_logs_formatter)
-log.addHandler(error_logs_handler)
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_formatter = logs_formatter
-console_handler.setFormatter(console_formatter)
-log.addHandler(console_handler)
+from app.hashing_service import calculate_sha256_hash
+from model import EncoderJobContext, Resolution, SourceVideo
 
 
 def extract(job_context: EncoderJobContext) -> EncoderJobContext:
@@ -71,35 +46,33 @@ def extract(job_context: EncoderJobContext) -> EncoderJobContext:
     format_data = ffprobe_output.get('format', {})
     tags = stream_data.get('tags', {})
 
-    fps = _extract_fps(stream_data)
-    if fps == 0.0:
+    fps_value = _extract_fps(stream_data)
+    if fps_value == 0.0:
         log.warning(f"FPS could not be determined for {job_context.source_file_path}, defaulting to 0.0")
-    job_context.report_data.source_video.fps = fps
 
     file_size_mb = _extract_file_size_megabytes(format_data)
-    job_context.report_data.source_video.file_size_megabytes = file_size_mb
 
     duration_seconds = _extract_video_duration_seconds(format_data)
     if duration_seconds == 0.0:
         log.warning(f"Duration could not be determined for {job_context.source_file_path}, defaulting to 0.0")
-    job_context.report_data.source_video.video_duration_seconds = duration_seconds
 
     bitrate_kbps = _extract_bitrate_kbps(stream_data, format_data)
     if bitrate_kbps == 0.0:
         log.warning(f"Bitrate could not be determined for {job_context.source_file_path}, defaulting to 0.0")
-    job_context.report_data.source_video.average_bitrate_kilobits_per_second = bitrate_kbps
 
     codec_name = _extract_codec_name(stream_data)
     if not codec_name:
         log.warning(
-            f"Codec name could not be determined for {job_context.source_file_path}, defaulting to empty string")
-    job_context.report_data.source_video.codec = codec_name
+            f"Codec name could not be determined for {job_context.source_file_path}, defaulting to None")
+        codec_name = None
 
     width, height = _extract_resolution(stream_data)
     if width == 0 or height == 0:
         log.warning(f"Resolution could not be determined for {job_context.source_file_path}, defaulting to 0x0")
-    job_context.report_data.source_video.resolution_width = width
-    job_context.report_data.source_video.resolution_height = height
+    resolution_object = Resolution(
+        width_px=width,
+        height_px=height
+    )
 
     pixel_aspect_ratio = _extract_pixel_aspect_ratio(stream_data, tags)
     if not pixel_aspect_ratio:
@@ -107,13 +80,27 @@ def extract(job_context: EncoderJobContext) -> EncoderJobContext:
             f"Pixel aspect ratio could not be determined for {job_context.source_file_path}, defaulting to None"
         )
         pixel_aspect_ratio = None
-    job_context.report_data.source_video.ffmpeg_metadata.pixel_aspect_ratio = pixel_aspect_ratio
 
     profile = _extract_profile(stream_data)
     if not profile:
         log.warning(f"Profile could not be determined for {job_context.source_file_path}, defaulting to None")
         profile = None
-    job_context.report_data.source_video.ffmpeg_metadata.profile = profile
+
+    hash = calculate_sha256_hash(job_context.source_file_path)
+
+    source_video = SourceVideo(
+        file_name=job_context.source_file_path.stem,
+        file_size_megabytes=file_size_mb,
+        resolution=resolution_object,
+        video_duration_seconds=duration_seconds,
+        codec=codec_name,
+        average_bitrate_kilobits_per_second=bitrate_kbps,
+        fps=fps_value,
+        actual_frame_count=math.floor(fps_value * duration_seconds),  # Can be calculated: fps * duration
+        sha256_hash=hash
+    )
+
+    job_context.report_data.source_video = source_video
 
     return job_context
 

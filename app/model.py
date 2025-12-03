@@ -10,14 +10,14 @@ class Resolution(BaseModel):
 
 
 class FfmpegMetadata(BaseModel):
-    pixel_aspect_ratio: Optional[str]
-    pixel_format: Optional[str]
-    chroma_sample_location: Optional[str]
-    color_primaries: Optional[str]
-    color_trc: Optional[str]
-    colorspace: Optional[str]
-    profile: Optional[str]
-    level: Optional[str]
+    pixel_aspect_ratio: Optional[str] = None
+    pixel_format: Optional[str] = None
+    chroma_sample_location: Optional[str] = None
+    color_primaries: Optional[str] = None
+    color_trc: Optional[str] = None
+    colorspace: Optional[str] = None
+    profile: Optional[str] = None
+    level: Optional[str] = None
 
 
 class EncoderSettings(BaseModel):
@@ -45,16 +45,16 @@ class SourceVideo(BaseModel):
     fps: float
     actual_frame_count: int  # Can be calculated: fps * duration
     sha256_hash: str
-    ffmpeg_metadata: FfmpegMetadata
+    ffmpeg_metadata: Optional[FfmpegMetadata] = None
 
 
 class EncodingStage(BaseModel):
     stage_number_from_1: int
     stage_name: str
-    crf_range_min: Optional[int]
-    crf_range_max: Optional[int]
-    last_vmaf: Optional[float]
-    last_crf: Optional[float]
+    crf_range_min: Optional[int] = -1
+    crf_range_max: Optional[int] = -1
+    last_vmaf: Optional[float] = -1
+    last_crf: Optional[float] = -1
 
 
 class Iteration(BaseModel):
@@ -76,9 +76,9 @@ class Iteration(BaseModel):
 
 
 class EncoderDataJson(BaseModel):
-    source_video: Optional[SourceVideo]
+    source_video: Optional[SourceVideo] = None
     encoding_stage: EncodingStage
-    iterations: List[Iteration]
+    iterations: List[Iteration] = Field(default_factory=list)
 
 
 class EncoderJobContext(BaseModel):
@@ -86,4 +86,4 @@ class EncoderJobContext(BaseModel):
     metadata_json_file_path: Path
     is_locked: bool = False
     is_complete: bool = False
-    report_data: Optional[EncoderDataJson]
+    report_data: Optional[EncoderDataJson] = None

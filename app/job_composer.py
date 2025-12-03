@@ -1,48 +1,18 @@
 import logging
-from pathlib import Path
 
+log = logging.getLogger(__name__)
+
+from pathlib import Path
 from app_config import ConfigManager
-from model import EncoderJobContext
+from model import EncoderJobContext, EncoderDataJson, EncodingStage
 import metadata_extractor
 import json_serializer
-
 from json_serializer import load_from_json
-
-logs_dir = Path("../logs")
-logs_dir.mkdir(exist_ok=True)
-
-log = logging.getLogger("job_composer")
-log.setLevel(logging.INFO)
-
-if log.hasHandlers():
-    log.handlers.clear()
-
-logs_formatter = logging.Formatter('[%(asctime)s][%(levelname)s]: %(message)s')
-
-all_logs_handler = logging.FileHandler(logs_dir / "full.log", mode='a', encoding='utf-8')
-all_logs_handler.setLevel(logging.INFO)
-all_logs_formatter = logs_formatter
-all_logs_handler.setFormatter(all_logs_formatter)
-log.addHandler(all_logs_handler)
-
-error_logs_handler = logging.FileHandler(logs_dir / "errors.log", mode='a', encoding='utf-8')
-error_logs_handler.setLevel(logging.ERROR)
-error_logs_formatter = logs_formatter
-error_logs_handler.setFormatter(error_logs_formatter)
-log.addHandler(error_logs_handler)
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_formatter = logs_formatter
-console_handler.setFormatter(console_formatter)
-log.addHandler(console_handler)
 
 
 def compose_jobs() -> list[EncoderJobContext]:
     app_config = ConfigManager.get_config()
     log.info(f"Starting to compose jobs for input directory: {app_config.input_dir}")
-
-    print("Composing jobs...")
 
     jobs = []
 
@@ -54,22 +24,29 @@ def compose_jobs() -> list[EncoderJobContext]:
 
             log.info(f"Composing job for file: {current_file_path}")
 
-            json_path = find_associated_metadata_json_file(current_file_path)
+            json_path = _find_associated_metadata_json_file(current_file_path)
             if json_path is None:
-                json_name = get_json_name_for_video_file(current_file_path)
+                json_name = _get_json_name_for_video_file(current_file_path)
                 log.info(f"Json metadata file not found for {current_file_path}, creating new json file: {json_name}")
                 new_json_path = current_file_path.parent / json_name
 
-                job_context = initialize_encoder_job(current_file_path, new_json_path)
+                job_context = _initialize_encoder_job(current_file_path, new_json_path)
 
                 metadata_extractor.extract(job_context)
 
-                json_serializer.serialize(job_context, new_json_path)
+                json_serializer.serialize_to_json(job_context.report_data, new_json_path)
 
                 jobs.append(job_context)
             else:
                 try:
-                    job = load_from_json(json_path)
+                    json_data = load_from_json(json_path)
+
+                    job = EncoderJobContext(
+                        source_file_path=current_file_path,
+                        metadata_json_file_path=json_path,
+                        report_data=json_data
+                    )
+
                     jobs.append(job)
                 except Exception as e:
                     log.error(f"Failed to load job from JSON for file {current_file_path}. Exception: {e}")
@@ -79,7 +56,7 @@ def compose_jobs() -> list[EncoderJobContext]:
 
 
 def _find_associated_metadata_json_file(video_file_path: Path) -> Path | None:
-    json_file_name = get_json_name_for_video_file(video_file_path)
+    json_file_name = _get_json_name_for_video_file(video_file_path)
     expected_json_path = video_file_path.parent / json_file_name
 
     if expected_json_path.exists():

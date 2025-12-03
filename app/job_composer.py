@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from app.app_config import ConfigManager
-from app.model import VideoEncodingJob
+from app.model import EncoderJobContext
 
 from app.json_serializer import load_from_json
 
@@ -36,7 +36,7 @@ console_handler.setFormatter(console_formatter)
 log.addHandler(console_handler)
 
 
-def compose_jobs() -> list[EncodingJobContext]:
+def compose_jobs() -> list[EncoderJobContext]:
     app_config = ConfigManager.get_config()
     log.info(f"Starting to compose jobs for input directory: {app_config.input_dir}")
 

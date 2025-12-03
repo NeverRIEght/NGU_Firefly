@@ -36,7 +36,7 @@ console_handler.setFormatter(console_formatter)
 log.addHandler(console_handler)
 
 
-def compose_jobs() -> list[VideoEncodingJob]:
+def compose_jobs() -> list[EncodingJobContext]:
     app_config = ConfigManager.get_config()
     log.info(f"Starting to compose jobs for input directory: {app_config.input_dir}")
 
@@ -56,9 +56,9 @@ def compose_jobs() -> list[VideoEncodingJob]:
                 log.info(f"Json metadata file not found for {current_file}, creating new json file: {json_name}")
                 new_json_path = current_file.parent / json_name
 
-                # Minimal valid VideoEncodingJob object creation
-                # Save job to json
-                # Update list of jobs
+                # Extract initial metadata from the source video file
+                # Save the initial version of EncoderDataJson to actual file
+                # Compose EncodingJobContext and add it to the list
             else:
                 try:
                     job = load_from_json(json_path)
@@ -69,6 +69,7 @@ def compose_jobs() -> list[VideoEncodingJob]:
     log.info(f"Finished composing jobs. Total jobs composed: {len(jobs)}")
     return jobs
 
+
 def find_associated_metadata_json_file(video_file_path: Path) -> Path | None:
     json_file_name = get_json_name_for_video_file(video_file_path)
     expected_json_path = video_file_path.parent / json_file_name
@@ -77,6 +78,7 @@ def find_associated_metadata_json_file(video_file_path: Path) -> Path | None:
         return expected_json_path
     else:
         return None
+
 
 def get_json_name_for_video_file(video_file_path: Path) -> str:
     return f"{video_file_path.stem}_encoderdata.json"

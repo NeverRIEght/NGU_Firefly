@@ -3,12 +3,12 @@ import logging
 import subprocess
 from pathlib import Path
 
-from app.model import EncoderJobContext
+from model import EncoderJobContext
 
 logs_dir = Path("../logs")
 logs_dir.mkdir(exist_ok=True)
 
-log = logging.getLogger()
+log = logging.getLogger("metadata_extractor")
 log.setLevel(logging.INFO)
 
 if log.hasHandlers():

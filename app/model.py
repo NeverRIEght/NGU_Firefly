@@ -76,7 +76,7 @@ class Iteration(BaseModel):
 
 
 class EncoderDataJson(BaseModel):
-    source_video: SourceVideo
+    source_video: Optional[SourceVideo]
     encoding_stage: EncodingStage
     iterations: List[Iteration]
 

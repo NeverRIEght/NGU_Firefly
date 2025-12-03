@@ -1,7 +1,8 @@
 import model
 from pathlib import Path
 
-def serialize_to_json(job_object: model.VideoEncodingJob, output_path: str | Path):
+
+def serialize_to_json(job_object: model.EncoderDataJson, output_path: str | Path):
     p = Path(output_path)
 
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -18,7 +19,7 @@ def serialize_to_json(job_object: model.VideoEncodingJob, output_path: str | Pat
         print(f"Error serializing json. Output path: {output_path}. Exception: {e}")
 
 
-def load_from_json(input_path: str | Path) -> model.VideoEncodingJob:
+def load_from_json(input_path: str | Path) -> model.EncoderDataJson:
     p = Path(input_path)
 
     if not p.is_file():
@@ -26,7 +27,7 @@ def load_from_json(input_path: str | Path) -> model.VideoEncodingJob:
 
     try:
         json_content = p.read_text(encoding="utf-8")
-        job_object = model.VideoEncodingJob.model_validate_json(json_content)
+        job_object = model.EncoderDataJson.model_validate_json(json_content)
 
         print(f"Json loaded: {p.resolve()}")
         return job_object

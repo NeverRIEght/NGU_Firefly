@@ -8,14 +8,14 @@ class Resolution(BaseModel):
 
 
 class FfmpegMetadata(BaseModel):
-    pixel_aspect_ratio: str
-    pixel_format: str
-    chroma_sample_location: str
-    color_primaries: str
-    color_trc: str
-    colorspace: str
-    profile: str
-    level: float
+    pixel_aspect_ratio: Optional[str]
+    pixel_format: Optional[str]
+    chroma_sample_location: Optional[str]
+    color_primaries: Optional[str]
+    color_trc: Optional[str]
+    colorspace: Optional[str]
+    profile: Optional[str]
+    level: Optional[str]
 
 
 class EncoderSettings(BaseModel):
@@ -40,7 +40,7 @@ class SourceVideo(BaseModel):
     codec: str
     average_bitrate_kilobits_per_second: int
     fps: float
-    actual_frame_count: int
+    actual_frame_count: int # Can be calculated: fps * duration
     sha256_hash: str
     ffmpeg_metadata: FfmpegMetadata
 

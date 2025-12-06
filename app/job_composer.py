@@ -4,7 +4,7 @@ log = logging.getLogger(__name__)
 
 from pathlib import Path
 from app_config import ConfigManager
-from model import EncoderJobContext, EncoderDataJson, EncodingStage
+from model import EncoderJobContext, EncoderDataJson, EncodingStage, EncodingStageNamesEnum
 import metadata_extractor
 import json_serializer
 from json_serializer import load_from_json
@@ -72,7 +72,7 @@ def _get_json_name_for_video_file(video_file_path: Path) -> str:
 def _initialize_encoder_job(source_file_path: Path, json_file_path: Path) -> EncoderJobContext:
     stage = EncodingStage(
         stage_number_from_1=1,
-        stage_name="composing_job"
+        stage_name=EncodingStageNamesEnum.PREPARED,
     )
 
     report = EncoderDataJson(

@@ -6,7 +6,7 @@ import json
 import math
 import subprocess
 
-from app.hashing_service import calculate_sha256_hash
+from hashing_service import calculate_sha256_hash
 from model import EncoderJobContext, Resolution, SourceVideo, FfmpegMetadata
 
 

@@ -2,6 +2,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
+from enum import Enum
 
 
 class Resolution(BaseModel):
@@ -50,11 +51,18 @@ class SourceVideo(BaseModel):
 
 class EncodingStage(BaseModel):
     stage_number_from_1: int
-    stage_name: str
+    stage_name: EncodingStageNamesEnum
     crf_range_min: Optional[int] = -1
     crf_range_max: Optional[int] = -1
     last_vmaf: Optional[float] = -1
     last_crf: Optional[float] = -1
+
+
+class EncodingStageNamesEnum(str, Enum):
+    PREPARED = "job_prepared"
+    SEARCHING_CRF = "searching_crf"
+    CRF_FOUND = "perfect_crf_found"
+    COMPLETED = "encoding_completed"
 
 
 class Iteration(BaseModel):

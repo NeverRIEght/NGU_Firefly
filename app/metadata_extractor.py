@@ -7,7 +7,7 @@ import math
 import subprocess
 
 from hashing_service import calculate_sha256_hash
-from model import EncoderJobContext, Resolution, SourceVideo, FfmpegMetadata
+from model import EncoderJobContext, Resolution, SourceVideo, FfmpegMetadata, EncodingStageNamesEnum
 
 
 def extract(job_context: EncoderJobContext) -> EncoderJobContext:
@@ -76,6 +76,9 @@ def extract(job_context: EncoderJobContext) -> EncoderJobContext:
     job_context.report_data.source_video = source_video
     job_context.report_data.source_video.ffmpeg_metadata = metadata
 
+    job_context.report_data.encoding_stage.stage_name = EncodingStageNamesEnum.METADATA_EXTRACTED
+    job_context.report_data.encoding_stage.stage_number_from_1 = 2
+
     return job_context
 
 
@@ -125,13 +128,13 @@ def _extract_codec_name(job_context: EncoderJobContext, stream_data) -> str:
 
 
 def _extract_resolution(stream_data) -> Resolution:
-    width = int(stream_data.get('width', 0))
-    height = int(stream_data.get('height', 0))
+    width = stream_data.get('width', 0)
+    height = stream_data.get('height', 0)
 
     if width is None or height is None:
         log.warning("Width or height is missing, defaulting to 0")
-        width = width or 0
-        height = height or 0
+        width = int(width) or 0
+        height = int(height) or 0
 
     extracted_resolution = Resolution(
         width_px=width,

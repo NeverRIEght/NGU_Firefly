@@ -60,6 +60,7 @@ class EncodingStage(BaseModel):
 
 class EncodingStageNamesEnum(str, Enum):
     PREPARED = "job_prepared"
+    METADATA_EXTRACTED = "metadata_extracted"
     SEARCHING_CRF = "searching_crf"
     CRF_FOUND = "perfect_crf_found"
     COMPLETED = "encoding_completed"

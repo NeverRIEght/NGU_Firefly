@@ -31,6 +31,7 @@ def compose_jobs() -> list[EncoderJobContext]:
                 new_json_path = current_file_path.parent / json_name
 
                 job_context = _initialize_encoder_job(current_file_path, new_json_path)
+                json_serializer.serialize_to_json(job_context.report_data, new_json_path)
 
                 metadata_extractor.extract(job_context)
 

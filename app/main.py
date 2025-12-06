@@ -1,5 +1,6 @@
 import logging
 import job_composer
+import encoder
 from pathlib import Path
 
 logs_dir = Path("../logs")
@@ -35,8 +36,7 @@ log.addHandler(console_handler)
 def main():
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
-        print(job)
-        print("\n")
+        encoder.encode_job(job)
 
 
 if __name__ == "__main__":

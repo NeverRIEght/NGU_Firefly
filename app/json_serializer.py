@@ -1,12 +1,13 @@
 import logging
 
+from model.encoder_data_json import EncoderDataJson
+
 log = logging.getLogger(__name__)
 
-import model
 from pathlib import Path
 
 
-def serialize_to_json(job_object: model.EncoderDataJson, output_path: str | Path):
+def serialize_to_json(job_object: EncoderDataJson, output_path: str | Path):
     p = Path(output_path)
 
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -23,7 +24,7 @@ def serialize_to_json(job_object: model.EncoderDataJson, output_path: str | Path
         log.error(f"Error serializing json. Output path: {output_path}. Exception: {e}")
 
 
-def load_from_json(input_path: str | Path) -> model.EncoderDataJson:
+def load_from_json(input_path: str | Path) -> EncoderDataJson:
     p = Path(input_path)
 
     if not p.is_file():
@@ -31,7 +32,7 @@ def load_from_json(input_path: str | Path) -> model.EncoderDataJson:
 
     try:
         json_content = p.read_text(encoding="utf-8")
-        job_object = model.EncoderDataJson.model_validate_json(json_content)
+        job_object = EncoderDataJson.model_validate_json(json_content)
 
         log.info(f"Json loaded: {p.resolve()}")
         return job_object

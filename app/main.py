@@ -1,10 +1,16 @@
 import logging
+
+import file_utils
+import hashing_service
 import job_composer
 import encoder
 from pathlib import Path
 
-import metadata_extractor, json_serializer
-from model import EncodingStageNamesEnum
+import json_serializer
+from extractor import video_attributes_extractor, ffmpeg_metadata_extractor
+from app.model.encoding_stage import EncodingStageNamesEnum
+from app.model.file_attributes import FileAttributes
+from app.model.source_video import SourceVideo
 
 logs_dir = Path("../logs")
 logs_dir.mkdir(exist_ok=True)
@@ -39,16 +45,29 @@ log.addHandler(console_handler)
 def main():
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
-        current_stage = job.report_data.encoding_stage.stage_name
+        current_stage = job.encoder_data.encoding_stage.stage_name
 
         # if COMPLETED - skip
-        if current_stage is EncodingStageNamesEnum.COMPLETED:
+        if current_stage == EncodingStageNamesEnum.COMPLETED:
             log.info("Job already encoded, skipping.")
 
+        log.info(current_stage)
+
         # if PREPARED - extract metadata
-        if current_stage is EncodingStageNamesEnum.PREPARED:
-            metadata_extractor.extract(job)
-            json_serializer.serialize_to_json(job.report_data, job.metadata_json_file_path)
+        if current_stage == EncodingStageNamesEnum.PREPARED:
+            log.info("prepared")
+            file_attributes = FileAttributes(
+                file_name=file_utils.get_file_name_with_extension(job.source_file_path),
+                file_size_megabytes=file_utils.get_file_size_megabytes(job.source_file_path),
+            )
+            job.encoder_data.source_video = SourceVideo(
+                file_attributes=file_attributes,
+                sha256_hash=hashing_service.calculate_sha256_hash(job.source_file_path),
+                video_attributes=video_attributes_extractor.extract(job.source_file_path),
+                ffmpeg_metadata=ffmpeg_metadata_extractor.extract(job.source_file_path),
+            )
+
+            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
 
         # if METADATA_EXTRACTED - start binary search with initial values from .env
         if current_stage is EncodingStageNamesEnum.METADATA_EXTRACTED:

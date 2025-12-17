@@ -1,11 +1,13 @@
 import logging
 
+from app.model.encoder_data_json import EncoderDataJson
+from app.model.encoder_job_context import EncoderJobContext
+from app.model.encoding_stage import EncodingStage, EncodingStageNamesEnum
+
 log = logging.getLogger(__name__)
 
 from pathlib import Path
 from app_config import ConfigManager
-from model import EncoderJobContext, EncoderDataJson, EncodingStage, EncodingStageNamesEnum
-import metadata_extractor
 import json_serializer
 from json_serializer import load_from_json
 
@@ -24,31 +26,30 @@ def compose_jobs() -> list[EncoderJobContext]:
 
             log.info(f"Composing job for file: {current_file_path}")
 
-            json_path = _find_associated_metadata_json_file(current_file_path)
-            if json_path is None:
+            json_file_path = _find_associated_metadata_json_file(current_file_path)
+            if json_file_path is None:
                 json_name = _get_json_name_for_video_file(current_file_path)
                 log.info(f"Json metadata file not found for {current_file_path}, creating new json file: {json_name}")
                 new_json_path = current_file_path.parent / json_name
 
                 job_context = _initialize_encoder_job(current_file_path, new_json_path)
-                json_serializer.serialize_to_json(job_context.report_data, new_json_path)
-
-                metadata_extractor.extract(job_context)
-
-                json_serializer.serialize_to_json(job_context.report_data, new_json_path)
+                json_serializer.serialize_to_json(job_context.encoder_data, new_json_path)
 
                 jobs.append(job_context)
+                log.info(f"Created new job for {current_file_path}")
             else:
                 try:
-                    json_data = load_from_json(json_path)
+                    log.info(f"Found existing json metadata file: {json_file_path}")
+                    json_data = load_from_json(json_file_path)
 
                     job = EncoderJobContext(
                         source_file_path=current_file_path,
-                        metadata_json_file_path=json_path,
-                        report_data=json_data
+                        metadata_json_file_path=json_file_path,
+                        encoder_data=json_data
                     )
 
                     jobs.append(job)
+                    log.info(f"Metadata for {current_file_path} loaded from JSON")
                 except Exception as e:
                     log.error(f"Failed to load job from JSON for file {current_file_path}. Exception: {e}")
 
@@ -79,14 +80,14 @@ def _initialize_encoder_job(source_file_path: Path, json_file_path: Path) -> Enc
         crf_range_max=app_config.crf_max,
     )
 
-    report = EncoderDataJson(
+    encoder_data = EncoderDataJson(
         encoding_stage=stage
     )
 
     job_context = EncoderJobContext(
         source_file_path=source_file_path,
         metadata_json_file_path=json_file_path,
-        report_data=report
+        encoder_data=encoder_data
     )
 
     return job_context

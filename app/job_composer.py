@@ -71,9 +71,12 @@ def _get_json_name_for_video_file(video_file_path: Path) -> str:
 
 
 def _initialize_encoder_job(source_file_path: Path, json_file_path: Path) -> EncoderJobContext:
+    app_config = ConfigManager.get_config()
     stage = EncodingStage(
         stage_number_from_1=1,
         stage_name=EncodingStageNamesEnum.PREPARED,
+        crf_range_min=app_config.crf_min,
+        crf_range_max=app_config.crf_max,
     )
 
     report = EncoderDataJson(

@@ -3,6 +3,9 @@ import job_composer
 import encoder
 from pathlib import Path
 
+import metadata_extractor, json_serializer
+from model import EncodingStageNamesEnum
+
 logs_dir = Path("../logs")
 logs_dir.mkdir(exist_ok=True)
 
@@ -36,7 +39,23 @@ log.addHandler(console_handler)
 def main():
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
-        encoder.encode_job(job)
+        current_stage = job.report_data.encoding_stage.stage_name
+
+        # if COMPLETED - skip
+        if current_stage is EncodingStageNamesEnum.COMPLETED:
+            log.info("Job already encoded, skipping.")
+
+        # if PREPARED - extract metadata
+        if current_stage is EncodingStageNamesEnum.PREPARED:
+            metadata_extractor.extract(job)
+            json_serializer.serialize_to_json(job.report_data, job.metadata_json_file_path)
+
+        # if METADATA_EXTRACTED - start binary search with initial values from .env
+        if current_stage is EncodingStageNamesEnum.METADATA_EXTRACTED:
+            encoder.encode_job(job)
+
+        # if SEARCHING_CRF - start binary search with the values from the json data
+        # if CRF_FOUND - perform one final encoding with the "crf_range_min" from the json data. Also, perform a check if the "crf_range_min" is the same as the "crf_range_max" = search completed
 
 
 if __name__ == "__main__":

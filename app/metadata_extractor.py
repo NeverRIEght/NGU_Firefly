@@ -11,6 +11,7 @@ from model import EncoderJobContext, Resolution, SourceVideo, FfmpegMetadata, En
 
 
 def extract(job_context: EncoderJobContext) -> EncoderJobContext:
+    # TODO: Make this return specific metadata object
     if job_context is None:
         raise ValueError("jobContext cannot be None")
 

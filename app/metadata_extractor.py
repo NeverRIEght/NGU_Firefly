@@ -181,8 +181,8 @@ def _extract_chroma_sample_location(job_context: EncoderJobContext, stream_data)
 def _extract_color_primaries(job_context: EncoderJobContext, stream_data) -> str | None:
     extracted_primaries = stream_data.get('color_primaries')
     if extracted_primaries is None:
-        log.warning(f"Color primaries could not be determined for {job_context.source_file_path}, defaulting to bt709")
-        return "bt709"
+        log.warning(f"Color primaries could not be determined for {job_context.source_file_path}, defaulting to None")
+        return None
 
     return extracted_primaries
 
@@ -192,8 +192,8 @@ def _extract_color_trc(job_context: EncoderJobContext, stream_data) -> str | Non
     if extracted_trc is None:
         log.warning(
             f"Color TRC (Transfer Characteristics) could not be determined for {job_context.source_file_path},"
-            f"defaulting to bt709")
-        return "bt709"
+            f"defaulting to None")
+        return None
 
     return extracted_trc
 
@@ -202,8 +202,8 @@ def _extract_colorspace(job_context: EncoderJobContext, stream_data) -> str | No
     extracted_colorspace = stream_data.get('color_space')
     if extracted_colorspace is None:
         log.warning(
-            f"Color space could not be determined for {job_context.source_file_path}, defaulting to bt709")
-        return "bt709"
+            f"Color space could not be determined for {job_context.source_file_path}, defaulting to None")
+        return None
 
     return extracted_colorspace
 

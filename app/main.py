@@ -43,8 +43,6 @@ log.addHandler(console_handler)
 
 
 def main():
-    # TODO: do not add jobs for files that are iterations
-
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
         current_stage = job.encoder_data.encoding_stage.stage_name
@@ -52,8 +50,6 @@ def main():
         # if COMPLETED - skip
         if current_stage == EncodingStageNamesEnum.COMPLETED:
             log.info("Job already encoded, skipping.")
-
-        log.info(current_stage)
 
         # if PREPARED - extract metadata
         if current_stage == EncodingStageNamesEnum.PREPARED:
@@ -74,6 +70,9 @@ def main():
 
         # if METADATA_EXTRACTED - start binary search with initial values from .env
         if current_stage is EncodingStageNamesEnum.METADATA_EXTRACTED:
+            encoder.encode_job(job)
+
+        if current_stage == EncodingStageNamesEnum.SEARCHING_CRF:
             encoder.encode_job(job)
 
         # if SEARCHING_CRF - start binary search with the values from the json data

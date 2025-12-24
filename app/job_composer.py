@@ -17,7 +17,7 @@ def compose_jobs() -> list[EncoderJobContext]:
     app_config = ConfigManager.get_config()
     log.info(f"Starting to compose jobs for input directory: {app_config.input_dir}")
 
-    jobs = list()
+    jobs = []
 
     input_dir = Path(app_config.input_dir)
     output_dir = Path(app_config.output_dir)
@@ -61,15 +61,21 @@ def compose_jobs() -> list[EncoderJobContext]:
 
             log.info(f"Composing job for file: {source_video_path}")
 
+            is_job_added = False
             for existing_job in jobs:
                 if existing_job.source_file_path == source_video_path:
                     log.info(f"Job already exists for file: {source_video_path}, skipping.")
+                    is_job_added = True
                     break
                 else:
                     for iteration in existing_job.encoder_data.iterations:
                         if iteration.file_attributes.file_name == get_file_name_with_extension(source_video_path):
                             log.info(f"File: {source_video_path} is an iteration of an existing job, skipping.")
+                            is_job_added = True
                             break
+
+            if is_job_added:
+                continue
 
             json_file_path = _find_metadata_json_file(source_video_path)
             if json_file_path is not None:
@@ -99,6 +105,7 @@ def _find_metadata_json_file(video_file_path: Path) -> Path | None:
     else:
         return None
 
+
 def _find_source_video_file(json_file_path: Path) -> Path | None:
     app_config = ConfigManager.get_config()
     json_stem = get_file_name_without_extension(json_file_path)
@@ -110,6 +117,7 @@ def _find_source_video_file(json_file_path: Path) -> Path | None:
                 return file
 
     return None
+
 
 def _get_json_name_for_video_file(video_file_path: Path) -> str:
     return f"{video_file_path.stem}_encoderdata.json"

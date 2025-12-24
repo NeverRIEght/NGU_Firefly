@@ -50,11 +50,17 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
         current_vmaf = iteration.execution_data.source_to_encoded_vmaf_percent
 
         if VMAF_TARGET_MIN <= current_vmaf <= VMAF_TARGET_MAX:
+            log.info(f"CRF {crf_to_test} produced acceptable VMAF: {current_vmaf}%, ending search.")
             stage.crf_range_min = crf_to_test
             stage.crf_range_max = crf_to_test
             stage.last_vmaf = current_vmaf
             stage.last_crf = crf_to_test
-            log.info(f"CRF {crf_to_test} produced acceptable VMAF: {current_vmaf}%, ending search.")
+
+            stage.stage_number_from_1 = 4
+            stage.stage_name = EncodingStageNamesEnum.CRF_FOUND
+
+            job.encoder_data.encoding_stage = stage
+            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
             break
 
         if current_vmaf > VMAF_TARGET_MAX:

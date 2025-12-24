@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -42,6 +43,10 @@ def calculate_vmaf(
     model_path_str = model_path.as_posix()
     log_path_str = log_path.as_posix()
 
+    if os.name == 'nt': # Windows needs escaping of colons
+        model_path_str = model_path_str.replace(':', '\\:')
+        log_path_str = log_path_str.replace(':', '\\:')
+
     # We explicitly normalize EVERYTHING to:
     # - yuv420p
     # - bt709
@@ -54,28 +59,11 @@ def calculate_vmaf(
     # - VMAF undefined behavior
 
     vmaf_filter = (
-        f"[0:v]"
-        f"scale=flags=bicubic,"
-        f"fps=fps=source,"
-        f"format=yuv420p"
-        f"[ref];"
-        f"[1:v]"
-        f"scale=flags=bicubic,"
-        f"fps=fps=source,"
-        f"format=yuv420p"
-        f"[dist];"
-        f"[ref][dist]"
-        f"libvmaf="
-        f"model={model_name}:"
-        f"log_fmt=json"
-    )
-
-    vmaf_filter = (
         f"[1:v][0:v]scale2ref=flags=bicubic[dist][ref];"
         f"[dist]format=yuv420p[dist_f];"
         f"[ref]format=yuv420p[ref_f];"
-        f"[dist_f][ref_f]libvmaf=model=path={model_path_str}:"
-        f"log_path={log_path_str}:log_fmt=json"
+        f"[dist_f][ref_f]libvmaf=model='path={model_path_str}':"
+        f"log_path='{log_path_str}':log_fmt=json"
     )
 
     cmd = [

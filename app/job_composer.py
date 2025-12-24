@@ -30,7 +30,7 @@ def compose_jobs() -> list[EncoderJobContext]:
             if json_file_path is None:
                 json_name = _get_json_name_for_video_file(current_file_path)
                 log.info(f"Json metadata file not found for {current_file_path}, creating new json file: {json_name}")
-                new_json_path = current_file_path.parent / json_name
+                new_json_path = Path(app_config.output_dir) / json_name
 
                 job_context = _initialize_encoder_job(current_file_path, new_json_path)
                 json_serializer.serialize_to_json(job_context.encoder_data, new_json_path)
@@ -58,8 +58,9 @@ def compose_jobs() -> list[EncoderJobContext]:
 
 
 def _find_associated_metadata_json_file(video_file_path: Path) -> Path | None:
+    app_config = ConfigManager.get_config()
     json_file_name = _get_json_name_for_video_file(video_file_path)
-    expected_json_path = video_file_path.parent / json_file_name
+    expected_json_path = Path(app_config.output_dir) / json_file_name
 
     if expected_json_path.exists():
         return expected_json_path

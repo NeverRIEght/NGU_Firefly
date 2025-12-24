@@ -7,9 +7,9 @@ from app.model.encoding_stage import EncodingStage, EncodingStageNamesEnum
 log = logging.getLogger(__name__)
 
 from pathlib import Path
-from app_config import ConfigManager
-import json_serializer
-from json_serializer import load_from_json
+from app.app_config import ConfigManager
+from app import json_serializer
+from app.json_serializer import load_from_json
 
 
 def compose_jobs() -> list[EncoderJobContext]:

@@ -1,13 +1,13 @@
 import logging
 
-import file_utils
-import hashing_service
-import job_composer
-import encoder
+from app import file_utils
+from app import hashing_service
+from app import job_composer
+from app import encoder
 from pathlib import Path
 
-import json_serializer
-from extractor import video_attributes_extractor, ffmpeg_metadata_extractor
+from app import json_serializer
+from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
 from app.model.encoding_stage import EncodingStageNamesEnum
 from app.model.file_attributes import FileAttributes
 from app.model.source_video import SourceVideo
@@ -43,6 +43,8 @@ log.addHandler(console_handler)
 
 
 def main():
+    # TODO: do not add jobs for files that are iterations
+
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
         current_stage = job.encoder_data.encoding_stage.stage_name
@@ -55,7 +57,6 @@ def main():
 
         # if PREPARED - extract metadata
         if current_stage == EncodingStageNamesEnum.PREPARED:
-            log.info("prepared")
             file_attributes = FileAttributes(
                 file_name=file_utils.get_file_name_with_extension(job.source_file_path),
                 file_size_megabytes=file_utils.get_file_size_megabytes(job.source_file_path),
@@ -66,8 +67,10 @@ def main():
                 video_attributes=video_attributes_extractor.extract(job.source_file_path),
                 ffmpeg_metadata=ffmpeg_metadata_extractor.extract(job.source_file_path),
             )
-
+            job.encoder_data.encoding_stage.stage_number_from_1 = 2
+            job.encoder_data.encoding_stage.stage_name = EncodingStageNamesEnum.METADATA_EXTRACTED
             json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+            current_stage = job.encoder_data.encoding_stage.stage_name
 
         # if METADATA_EXTRACTED - start binary search with initial values from .env
         if current_stage is EncodingStageNamesEnum.METADATA_EXTRACTED:

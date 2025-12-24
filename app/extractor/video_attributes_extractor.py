@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from model.video_attributes import VideoAttributes
+from app.model.video_attributes import VideoAttributes
 
 log = logging.getLogger(__name__)
 

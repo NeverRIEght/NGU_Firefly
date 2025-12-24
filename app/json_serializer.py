@@ -1,6 +1,6 @@
 import logging
 
-from model.encoder_data_json import EncoderDataJson
+from app.model.encoder_data_json import EncoderDataJson
 
 log = logging.getLogger(__name__)
 

@@ -1,15 +1,17 @@
 import logging
 
-import file_utils
-import json_serializer
-from app_config import ConfigManager
-from extractor import video_attributes_extractor, ffmpeg_metadata_extractor
-from model.encoder_job_context import EncoderJobContext
-from model.encoder_settings import EncoderSettings
-from model.environment import Environment
-from model.execution_data import ExecutionData
-from model.file_attributes import FileAttributes
-from model.iteration import Iteration
+from app import file_utils
+from app import json_serializer
+from app.app_config import ConfigManager
+from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
+from app.model.encoder_job_context import EncoderJobContext
+from app.model.encoder_settings import EncoderSettings
+from app.model.encoding_stage import EncodingStageNamesEnum
+from app.model.environment import Environment
+from app.model.execution_data import ExecutionData
+from app.model.file_attributes import FileAttributes
+from app.model.iteration import Iteration
+from app.vmaf_comparator import calculate_vmaf
 
 log = logging.getLogger(__name__)
 
@@ -17,7 +19,7 @@ import json
 import os
 import subprocess
 import time
-import hashing_service
+from app import hashing_service
 import shlex
 from pathlib import Path
 from datetime import datetime, timezone
@@ -29,8 +31,8 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
     app_config = ConfigManager.get_config()
     stage = job.encoder_data.encoding_stage
 
-    VMAF_TARGET_MIN = 95.0
-    VMAF_TARGET_MAX = 96.0
+    VMAF_TARGET_MIN = 96.0
+    VMAF_TARGET_MAX = 97.0
 
     while True:
         if stage.last_crf is None:
@@ -56,17 +58,20 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
             break
 
         if current_vmaf > VMAF_TARGET_MAX:
-            # Quality too high (>96%), need more compression -> increase CRF
+            # Quality too high, need more compression -> increase CRF
             log.info(f"VMAF {current_vmaf}% is above target max {VMAF_TARGET_MAX}%, increasing CRF.")
             stage.crf_range_min = crf_to_test + 1
         else:
-            # Quality too low (<95%), need less compression -> decrease CRF
+            # Quality too low, need less compression -> decrease CRF
             log.info(f"VMAF {current_vmaf}% is below target min {VMAF_TARGET_MIN}%, decreasing CRF.")
             stage.crf_range_max = crf_to_test - 1
 
         stage.last_crf = crf_to_test
         stage.last_vmaf = current_vmaf
+        stage.stage_number_from_1 = 3
+        stage.stage_name = EncodingStageNamesEnum.SEARCHING_CRF
 
+        job.encoder_data.encoding_stage = stage
         json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
 
     log.info(f"Encoding completed for {job.source_file_path}, performing cleanup")
@@ -102,6 +107,8 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
 
     readable_command = shlex.join(encoding_command)
 
+    source_video_attributes = job_context.encoder_data.source_video.video_attributes
+
     iteration = Iteration(
         file_attributes=FileAttributes(
             file_name=output_file_path.name,
@@ -117,7 +124,7 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
         ),
         execution_data=ExecutionData(
             ffmpeg_command_used=readable_command,
-            source_to_encoded_vmaf_percent=_calculate_vmaf(input_file_path, output_file_path),
+            source_to_encoded_vmaf_percent=calculate_vmaf(input_file_path, output_file_path, source_video_attributes),
             encoding_finished_datetime=encoding_finished_time.isoformat(),
             encoding_time_seconds=encoding_duration_seconds
         ),
@@ -256,102 +263,3 @@ def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_f
 
 class EncodingError(Exception):
     pass
-
-
-def _calculate_vmaf(
-        reference: Path,
-        distorted: Path,
-        model: str = "vmaf_v0.6.1"
-) -> float:
-    """
-    Compares two video files using VMAF.
-
-    Assumptions & guarantees:
-    - No reliance on container color metadata
-    - Explicit colorspace normalization
-    - Frame-accurate comparison
-    - No intermediate files created
-
-    Requirements:
-    - ffmpeg built with libvmaf
-    """
-
-    if not reference.is_file():
-        raise FileNotFoundError(f"Reference file not found: {reference}")
-    if not distorted.is_file():
-        raise FileNotFoundError(f"Distorted file not found: {distorted}")
-
-    # We explicitly normalize EVERYTHING to:
-    # - yuv420p
-    # - bt709
-    # - progressive
-    # - same resolution & fps (taken from reference)
-    #
-    # This avoids:
-    # - colorspace mismatches
-    # - container metadata lies
-    # - VMAF undefined behavior
-
-    vmaf_filter = (
-        f"[0:v]"
-        f"scale=flags=bicubic,"
-        f"fps=fps=source,"
-        f"format=yuv420p"
-        f"[ref];"
-        f"[1:v]"
-        f"scale=flags=bicubic,"
-        f"fps=fps=source,"
-        f"format=yuv420p"
-        f"[dist];"
-        f"[ref][dist]"
-        f"libvmaf="
-        f"model={model}:"
-        f"log_fmt=json"
-    )
-
-    cmd = [
-        "ffmpeg",
-        "-hide_banner",
-        "-loglevel", "error",
-
-        "-i", str(reference),
-        "-i", str(distorted),
-
-        "-lavfi", vmaf_filter,
-        "-f", "null",
-        "-"
-    ]
-
-    try:
-        proc = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(
-            f"FFmpeg VMAF computation failed:\n{e.stderr}"
-        ) from e
-
-    # FFmpeg prints libvmaf JSON to stderr
-    stderr = proc.stderr
-
-    try:
-        # Extract JSON block from stderr
-        json_start = stderr.index("{")
-        json_data = json.loads(stderr[json_start:])
-    except Exception as e:
-        raise RuntimeError(
-            f"Failed to parse VMAF output.\nRaw stderr:\n{stderr}"
-        ) from e
-
-    try:
-        vmaf_score = json_data["pooled_metrics"]["vmaf"]["mean"]
-    except KeyError:
-        raise RuntimeError(
-            f"VMAF score not found in output JSON:\n{json_data}"
-        )
-
-    return float(vmaf_score)

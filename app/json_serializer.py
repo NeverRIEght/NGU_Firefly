@@ -18,7 +18,7 @@ def serialize_to_json(job_object: EncoderDataJson, output_path: str | Path):
         with open(p, "w", encoding="utf-8") as f:
             f.write(json_string)
 
-        log.info(f"Json saved successfully: {p.resolve()}")
+        log.debug(f"Json saved successfully: {p.resolve()}")
 
     except Exception as e:
         log.error(f"Error serializing json. Output path: {output_path}. Exception: {e}")
@@ -34,7 +34,7 @@ def load_from_json(input_path: str | Path) -> EncoderDataJson:
         json_content = p.read_text(encoding="utf-8")
         job_object = EncoderDataJson.model_validate_json(json_content)
 
-        log.info(f"Json loaded: {p.resolve()}")
+        log.debug(f"Json loaded: {p.resolve()}")
         return job_object
 
     except Exception as e:

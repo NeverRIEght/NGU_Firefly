@@ -13,7 +13,7 @@ def calculate_sha256_hash(file_path: Path) -> str:
         log.error(f"Source file not found at {file_path.name}")
         raise FileNotFoundError(f"Source file not found at {file_path.resolve()}")
 
-    log.info(f"Calculating SHA256 for the file: {file_path.name}")
+    log.debug(f"Calculating SHA256 for the file: {file_path.name}")
 
     sha256_hash = hashlib.sha256()
 
@@ -32,6 +32,6 @@ def calculate_sha256_hash(file_path: Path) -> str:
         raise RuntimeError(f"Could not read file for hashing: {e}")
 
     final_hash = sha256_hash.hexdigest()
-    log.info(f"SHA256 calculated. Hash: {final_hash[:10]}...")
+    log.debug(f"SHA256 calculated. Hash: {final_hash[:10]}...")
 
     return final_hash

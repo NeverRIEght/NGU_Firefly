@@ -81,7 +81,7 @@ def get_short_path(file_path: Path) -> str:
 
 def get_video_duration(video_path: Path) -> float | None:
     short_path = get_short_path(video_path)
-    log.info(f"Getting video duration for: {video_path}")
+    log.debug(f"Getting video duration for: {video_path}")
     try:
         command = [
             'ffprobe',
@@ -97,7 +97,7 @@ def get_video_duration(video_path: Path) -> float | None:
         if duration < 0:
             log.warning(f"Negative duration for {short_path}. Returning None.")
             return None
-        log.info(f"Got duration for {short_path}: {duration} seconds")
+        log.debug(f"Got duration for {short_path}: {duration} seconds")
         return duration
     except (subprocess.CalledProcessError, KeyError, ValueError):
         log.error(f"Error getting duration for {video_path}. Returning None.")

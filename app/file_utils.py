@@ -22,7 +22,7 @@ def get_file_parent_folder(file_path: Path) -> Path:
 
 
 def get_file_size_megabytes(file_path: Path) -> float | None:
-    log.info(f"Getting file size for: {file_path}")
+    log.debug(f"Getting file size for: {file_path}")
     try:
         if not file_path.is_file():
             log.error(f"File not found for size calculation: {file_path}")

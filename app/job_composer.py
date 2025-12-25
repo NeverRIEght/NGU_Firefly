@@ -10,25 +10,29 @@ from pathlib import Path
 from app.app_config import ConfigManager
 from app import json_serializer
 from app.json_serializer import load_from_json
-from app.file_utils import get_file_name_with_extension, get_file_name_without_extension
+from app.file_utils import get_file_name_with_extension, get_file_name_without_extension, delete_file
 
 
 def compose_jobs() -> list[EncoderJobContext]:
     app_config = ConfigManager.get_config()
-    log.info(f"Starting to compose jobs for input directory: {app_config.input_dir}")
+    log.info("Composing encoding jobs...")
+    log.info("|-Input directory: %s", app_config.input_dir)
+    log.info("|-Output directory: %s", app_config.output_dir)
 
     jobs = []
 
     input_dir = Path(app_config.input_dir)
     output_dir = Path(app_config.output_dir)
     if not output_dir.exists():
-        log.info(f"Output directory does not exist. Creating: {output_dir}")
+        log.info("Output directory does not exist. Creating: %s", output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+
+    jsons_loaded = 0
 
     for file in output_dir.iterdir():
         if file.is_file() and file.name.endswith("_encoderdata.json"):
             try:
-                log.info(f"Validating existing json metadata file: {file}")
+                log.debug("Loading existing json metadata file: %s", file)
                 json_data = load_from_json(file)
 
                 source_video_name = json_data.source_video.file_attributes.file_name
@@ -38,7 +42,7 @@ def compose_jobs() -> list[EncoderJobContext]:
                 if not source_video_path.exists():
                     log.error(f"Source video file {source_video_name} not found in"
                               f"input directory for metadata file {file}. Deleting metadata file.")
-                    file.unlink()
+                    delete_file(source_video_path)
                     continue
 
                 json_file_path = file
@@ -50,39 +54,49 @@ def compose_jobs() -> list[EncoderJobContext]:
                 )
 
                 jobs.append(job)
+                jsons_loaded += 1
                 log.info(f"Metadata for {source_video_path} loaded from JSON")
+
+                log.info("Composing encoding jobs...")
+                log.info("|-Loading jobs from existing metadata files... %d", jsons_loaded)
             except Exception as e:
-                log.error(f"Invalid json metadata file found: {file}. Exception: {e}. Deleting file.")
-                file.unlink()
+                log.warning(f"Invalid json metadata file found: {file}. Exception: {e}. Deleting file.")
+                delete_file(file)
+
+    log.info("Composing encoding jobs...")
+    log.info("|-Loaded jobs from existing metadata files: %d", jsons_loaded)
+
+    jobs_created = 0
 
     for item in input_dir.iterdir():
         if item.is_file() and item.suffix.lower() == ".mp4":
             source_video_path = item
 
-            log.info(f"Composing job for file: {source_video_path}")
+            log.debug(f"Creating job for file: {source_video_path}")
 
             is_job_added = False
             for existing_job in jobs:
                 if existing_job.source_file_path == source_video_path:
-                    log.info(f"Job already exists for file: {source_video_path}, skipping.")
+                    log.debug(f"Existing job found for file: {source_video_path}")
                     is_job_added = True
                     break
                 else:
                     for iteration in existing_job.encoder_data.iterations:
                         if iteration.file_attributes.file_name == get_file_name_with_extension(source_video_path):
-                            log.info(f"File: {source_video_path} is an iteration of an existing job, skipping.")
+                            log.debug(f"File appears to be an iteration of an existing job: {source_video_path}")
                             is_job_added = True
                             break
 
             if is_job_added:
+                log.info(f"Job exists for file: {source_video_path}, skipping.")
                 continue
 
             json_file_path = _find_metadata_json_file(source_video_path)
             if json_file_path is not None:
-                log.error("Unloaded file metadata json found. Skipping file.")
+                log.error("Non-loaded file metadata json found. Skipping file. Re-launch the application to load it.")
             else:
                 json_name = _get_json_name_for_video_file(source_video_path)
-                log.info(f"Creating new json file for {source_video_path}: {json_name}")
+                log.debug(f"Creating new json file for {source_video_path}: {json_name}")
                 new_json_path = Path(app_config.output_dir) / json_name
 
                 job_context = _initialize_encoder_job(source_video_path, new_json_path)
@@ -90,8 +104,14 @@ def compose_jobs() -> list[EncoderJobContext]:
 
                 jobs.append(job_context)
                 log.info(f"Created new job for {source_video_path}")
+                jobs_created += 1
+                log.info("Composing encoding jobs...")
+                log.info("|-Loaded jobs from existing metadata files: %d", jsons_loaded)
+                log.info("|-Creating new jobs from source files... %d", jobs_created)
 
-    log.info(f"Finished composing jobs. Total jobs composed: {len(jobs)}")
+    log.info(f"Finished composing jobs: {len(jobs)}")
+    log.info("|-Loaded jobs from existing metadata files: %d", jsons_loaded)
+    log.info("|-Created new jobs from source files: %d", jobs_created)
     return jobs
 
 

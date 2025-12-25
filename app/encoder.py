@@ -80,19 +80,7 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
         job.encoder_data.encoding_stage = stage
         json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
 
-    log.info(f"Encoding completed for {job.source_file_path}, performing cleanup")
-
-    # TODO: Perform cleanup actions and mark as complete
-    for iteration in job.encoder_data.iterations:
-        if iteration.encoder_settings.crf != stage.crf_range_min:
-            output_file_path = job.source_file_path.parent / iteration.file_attributes.file_name
-            log.info(f"Deleting non-final iteration file: {output_file_path}")
-            file_utils.delete_file(output_file_path)
-
-    job.encoder_data.encoding_stage.stage_number_from_1 = 5
-    job.encoder_data.encoding_stage.stage_name = EncodingStageNamesEnum.COMPLETED
-    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
-
+    log.info(f"Encoder: completed {job.source_file_path}")
     return job
 
 

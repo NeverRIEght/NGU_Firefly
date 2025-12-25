@@ -1,12 +1,12 @@
 import logging
+from pathlib import Path
 
+from app import encoder
 from app import file_utils
 from app import hashing_service
 from app import job_composer
-from app import encoder
-from pathlib import Path
-
 from app import json_serializer
+from app.app_config import ConfigManager
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
 from app.model.encoding_stage import EncodingStageNamesEnum
 from app.model.file_attributes import FileAttributes
@@ -43,15 +43,11 @@ log.addHandler(console_handler)
 
 
 def main():
+    app_config = ConfigManager.get_config()
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
         current_stage = job.encoder_data.encoding_stage.stage_name
 
-        # if COMPLETED - skip
-        if current_stage == EncodingStageNamesEnum.COMPLETED:
-            log.info("Job already encoded, skipping.")
-
-        # if PREPARED - extract metadata
         if current_stage == EncodingStageNamesEnum.PREPARED:
             file_attributes = FileAttributes(
                 file_name=file_utils.get_file_name_with_extension(job.source_file_path),
@@ -68,15 +64,23 @@ def main():
             json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
             current_stage = job.encoder_data.encoding_stage.stage_name
 
-        # if METADATA_EXTRACTED - start binary search with initial values from .env
-        if current_stage is EncodingStageNamesEnum.METADATA_EXTRACTED:
+        if current_stage == EncodingStageNamesEnum.METADATA_EXTRACTED:
             encoder.encode_job(job)
 
         if current_stage == EncodingStageNamesEnum.SEARCHING_CRF:
             encoder.encode_job(job)
 
-        # if SEARCHING_CRF - start binary search with the values from the json data
-        # if CRF_FOUND - perform one final encoding with the "crf_range_min" from the json data. Also, perform a check if the "crf_range_min" is the same as the "crf_range_max" = search completed
+        if (current_stage == EncodingStageNamesEnum.CRF_FOUND
+                or current_stage == EncodingStageNamesEnum.COMPLETED):
+            log.info("Job already encoded, performing cleanup...")
+            stage = job.encoder_data.encoding_stage
+            for iteration in job.encoder_data.iterations:
+                if iteration.encoder_settings.crf != stage.crf_range_min:
+                    output_file_path = Path(app_config.output_dir) / iteration.file_attributes.file_name
+                    log.info(f"Deleting non-final iteration file: {output_file_path}")
+                    file_utils.delete_file(output_file_path)
+
+        log.info(f"Finished job for source video: {job.source_file_path}")
 
 
 if __name__ == "__main__":

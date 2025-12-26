@@ -52,7 +52,6 @@ def main():
 
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
-        current_stage = job.encoder_data.encoding_stage.stage_name
         is_error: bool = job.encoder_data.encoding_stage.stage_number_from_1 < 0
 
         if is_error:
@@ -60,7 +59,7 @@ def main():
                       f"{job.encoder_data.encoding_stage.stage_name}. Skipping...")
             continue
 
-        if current_stage == EncodingStageNamesEnum.PREPARED:
+        if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.PREPARED:
             file_attributes = FileAttributes(
                 file_name=file_utils.get_file_name_with_extension(job.source_file_path),
                 file_size_megabytes=file_utils.get_file_size_megabytes(job.source_file_path),
@@ -74,16 +73,15 @@ def main():
             job.encoder_data.encoding_stage.stage_number_from_1 = 2
             job.encoder_data.encoding_stage.stage_name = EncodingStageNamesEnum.METADATA_EXTRACTED
             json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
-            current_stage = job.encoder_data.encoding_stage.stage_name
 
-        if current_stage == EncodingStageNamesEnum.METADATA_EXTRACTED:
+        if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.METADATA_EXTRACTED:
             encoder.encode_job(job)
 
-        if current_stage == EncodingStageNamesEnum.SEARCHING_CRF:
+        if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.SEARCHING_CRF:
             encoder.encode_job(job)
 
-        if (current_stage == EncodingStageNamesEnum.CRF_FOUND
-                or current_stage == EncodingStageNamesEnum.COMPLETED):
+        if (job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.CRF_FOUND
+                or job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.COMPLETED):
             log.info("Job already encoded, performing cleanup...")
             stage = job.encoder_data.encoding_stage
             for iteration in job.encoder_data.iterations:

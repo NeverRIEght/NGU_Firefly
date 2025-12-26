@@ -47,6 +47,12 @@ def main():
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
         current_stage = job.encoder_data.encoding_stage.stage_name
+        is_error: bool = job.encoder_data.encoding_stage.stage_number_from_1 < 0
+
+        if is_error:
+            log.warning(f"Job for source video {job.source_file_path} is in error state: "
+                      f"{job.encoder_data.encoding_stage.stage_name}. Skipping...")
+            continue
 
         if current_stage == EncodingStageNamesEnum.PREPARED:
             file_attributes = FileAttributes(

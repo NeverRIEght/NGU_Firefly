@@ -116,9 +116,12 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
 
     app_config = ConfigManager.get_config()
 
+    threads_count = _calculate_threads_count()
     input_file_path = job_context.source_file_path
     output_file_path = _generate_output_file_path(input_file_path, crf)
-    threads_count = _calculate_threads_count()
+
+    if file_utils.check_file_exists(output_file_path):
+        file_utils.delete_file(output_file_path)
 
     encoding_command = _compose_encoding_command(job_context=job_context,
                                                  crf=crf,

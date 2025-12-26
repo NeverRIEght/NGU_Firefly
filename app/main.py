@@ -11,6 +11,7 @@ from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
 from app.model.encoding_stage import EncodingStageNamesEnum
 from app.model.file_attributes import FileAttributes
 from app.model.source_video import SourceVideo
+from datetime import datetime, timezone
 
 logs_dir = Path("../logs")
 logs_dir.mkdir(exist_ok=True)
@@ -44,6 +45,11 @@ log.addHandler(console_handler)
 
 def main():
     app_config = ConfigManager.get_config()
+
+    log.info("Video Encoder v.%s", app_config.version)
+    log.info("Current datetime: %s", datetime.now(timezone.utc))
+    log.info("Starting session...")
+
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
         current_stage = job.encoder_data.encoding_stage.stage_name

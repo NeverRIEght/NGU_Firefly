@@ -26,7 +26,7 @@ def extract(path_to_file: Path) -> VideoAttributes:
         str(path_to_file),
     ]
 
-    log.info(f"Executing ffprobe for {path_to_file}")
+    log.debug(f"Executing ffprobe for {path_to_file}")
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -56,7 +56,7 @@ def extract(path_to_file: Path) -> VideoAttributes:
 
 
 def get_video_duration(video_path: Path) -> float | None:
-    log.info(f"Getting video duration for: {video_path}")
+    log.debug(f"Getting video duration for: {video_path}")
     try:
         command = [
             'ffprobe',

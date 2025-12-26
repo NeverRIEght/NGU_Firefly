@@ -26,7 +26,7 @@ def extract(path_to_file: Path) -> FfmpegMetadata:
         str(path_to_file),
     ]
 
-    log.info(f"Executing ffprobe for {path_to_file}")
+    log.debug(f"Executing ffprobe for {path_to_file}")
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)

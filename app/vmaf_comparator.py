@@ -1,7 +1,11 @@
-import json
+import logging
 import os
+import time
+
+log = logging.getLogger(__name__)
+
+import json
 import subprocess
-import tempfile
 from pathlib import Path
 
 from app.model.video_attributes import VideoAttributes
@@ -37,15 +41,10 @@ def calculate_vmaf(
 
     model_path = get_vmaf_model_path(model_name)
 
-    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
-        log_path = Path(tmp.name)
+    log_filename = f"vmaf_log_{int(time.time())}.json"
 
-    model_path_str = model_path.as_posix()
-    log_path_str = log_path.as_posix()
-
-    if os.name == 'nt': # Windows needs escaping of colons
-        model_path_str = model_path_str.replace(':', '\\:')
-        log_path_str = log_path_str.replace(':', '\\:')
+    old_cwd = os.getcwd()
+    os.chdir(model_path.parent)
 
     # We explicitly normalize EVERYTHING to:
     # - yuv420p
@@ -58,45 +57,46 @@ def calculate_vmaf(
     # - container metadata lies
     # - VMAF undefined behavior
 
-    vmaf_filter = (
-        f"[1:v][0:v]scale2ref=flags=bicubic[dist][ref];"
-        f"[dist]format=yuv420p[dist_f];"
-        f"[ref]format=yuv420p[ref_f];"
-        f"[dist_f][ref_f]libvmaf=model='path={model_path_str}':"
-        f"log_path='{log_path_str}':log_fmt=json"
-    )
-
-    cmd = [
-        "ffmpeg",
-        "-hide_banner",
-        "-loglevel", "error",
-
-        "-i", str(source_video_path),
-        "-i", str(encoded_video_path),
-
-        "-lavfi", vmaf_filter,
-        "-f", "null",
-        "-"
-    ]
-
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        model_param = model_path.name
+        log_param = log_filename
 
-        with open(log_path, 'r') as f:
+        vmaf_filter = (
+            f"[1:v][0:v]scale2ref=flags=bicubic[dist][ref];"
+            f"[dist]format=yuv420p[dist_f];"
+            f"[ref]format=yuv420p[ref_f];"
+            f"[dist_f][ref_f]libvmaf=model='path={model_param}':"
+            f"log_path='{log_param}':log_fmt=json"
+        )
+
+        cmd = [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel", "error",
+
+            "-i", str(source_video_path),
+            "-i", str(encoded_video_path),
+
+            "-lavfi", vmaf_filter,
+            "-f", "null",
+            "-"
+        ]
+
+        log.debug(f"Running VMAF (CWD: {os.getcwd()}): {' '.join(cmd)}")
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            raise RuntimeError(f"FFmpeg failed with code {result.returncode}. Stderr: {result.stderr}")
+
+        with open(log_param, 'r') as f:
             json_data = json.load(f)
-
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"FFmpeg VMAF failed:\n{e.stderr}")
-    except Exception as e:
-        raise RuntimeError(f"Failed to read/parse VMAF log at {log_path}: {e}")
     finally:
-        if log_path.exists():
-            log_path.unlink()
+        if os.path.exists(log_filename):
+            os.remove(log_filename)
 
-    try:
-        return float(json_data["pooled_metrics"]["vmaf"]["mean"])
-    except KeyError:
-        raise RuntimeError(f"Unexpected JSON structure in VMAF log: {json_data}")
+        os.chdir(old_cwd)
+
+    return float(json_data["pooled_metrics"]["vmaf"]["mean"])
 
 
 def _get_optimal_model_name(width: int, height: int) -> str:

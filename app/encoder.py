@@ -3,7 +3,7 @@ import logging
 from app import file_utils
 from app import json_serializer
 from app.app_config import ConfigManager
-from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
+from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor, environment_extractor
 from app.model.encoder_job_context import EncoderJobContext
 from app.model.encoder_settings import EncoderSettings
 from app.model.encoding_stage import EncodingStageNamesEnum, EncodingStage
@@ -24,19 +24,20 @@ from pathlib import Path
 from datetime import datetime, timezone
 import numpy as np
 
-VMAF_TARGET_MIN = 96.0
-VMAF_TARGET_MAX = 97.0
-VMAF_PROGRESS_THRESHOLD = 0.15
-
 
 def encode_job(job: EncoderJobContext) -> EncoderJobContext:
     log.info(f"Encoding job: {job}")
 
     app_config = ConfigManager.get_config()
+
+    vmaf_target_min = app_config.vmaf_min
+    vmaf_target_max = app_config.vmaf_max
+    efficiency_threshold = app_config.efficiency_threshold
+
     stage = job.encoder_data.encoding_stage
 
     while True:
-        crf_to_test = _predict_next_crf(job, (VMAF_TARGET_MIN + VMAF_TARGET_MAX) / 2)
+        crf_to_test = _predict_next_crf(job, (vmaf_target_min + vmaf_target_max) / 2)
 
         if crf_to_test < app_config.crf_min or crf_to_test > app_config.crf_max:
             log.warning(f"Predicted CRF {crf_to_test} is out of bounds ({app_config.crf_min}-{app_config.crf_max}). "
@@ -57,24 +58,37 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
         iteration = _encode_iteration(job_context=job, crf=crf_to_test)
         current_vmaf = iteration.execution_data.source_to_encoded_vmaf_percent
 
-        if stage.last_vmaf is not None:
+        if stage.last_vmaf is not None and stage.last_crf is not None:
             vmaf_delta = abs(current_vmaf - stage.last_vmaf)
-            if vmaf_delta < VMAF_PROGRESS_THRESHOLD:
-                log.warning(f"VMAF delta {vmaf_delta:.4f} is too small. Stopping.")
+            crf_delta = abs(crf_to_test - stage.last_crf)
 
-                # TODO: use best VMAF instead of current
-                job.encoder_data.encoding_stage = EncodingStage(
-                    stage_number_from_1=-2,
-                    stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
-                    crf_range_min=crf_to_test,
-                    crf_range_max=crf_to_test,
-                    last_vmaf=current_vmaf,
-                    last_crf=crf_to_test
-                )
-                json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
-                break
+            if crf_delta > 0:
+                vmaf_per_crf = vmaf_delta / crf_delta
 
-        if VMAF_TARGET_MIN <= current_vmaf <= VMAF_TARGET_MAX:
+                if vmaf_per_crf < efficiency_threshold:
+                    log.warning("Low encoding efficiency. Skipping file.")
+                    log.warning("|-VMAF delta: %.4f", vmaf_delta)
+                    log.warning("|-CRF delta: %.4f", crf_delta)
+                    log.warning("|-VMAF/CRF: %.4f", vmaf_per_crf)
+                    log.warning("|-Efficiency threshold: %.4f", efficiency_threshold)
+
+                    best_iteration = min(
+                        job.encoder_data.iterations,
+                        key=lambda i: abs(i.execution_data.source_to_encoded_vmaf_percent - vmaf_target_min)
+                    )
+
+                    job.encoder_data.encoding_stage = EncodingStage(
+                        stage_number_from_1=-2,
+                        stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
+                        crf_range_min=best_iteration.encoder_settings.crf,
+                        crf_range_max=best_iteration.encoder_settings.crf,
+                        last_vmaf=best_iteration.execution_data.source_to_encoded_vmaf_percent,
+                        last_crf=best_iteration.encoder_settings.crf
+                    )
+                    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                    break
+
+        if vmaf_target_min <= current_vmaf <= vmaf_target_max:
             log.info(f"CRF {crf_to_test} produced acceptable VMAF: {current_vmaf}%, ending search.")
 
             job.encoder_data.encoding_stage = EncodingStage(
@@ -88,13 +102,13 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
             json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
             break
 
-        if current_vmaf > VMAF_TARGET_MAX:
+        if current_vmaf > vmaf_target_max:
             # Quality too high, need more compression -> increase CRF
-            log.info(f"VMAF {current_vmaf}% is above target max {VMAF_TARGET_MAX}%, increasing CRF.")
+            log.info(f"VMAF {current_vmaf}% is above target max {vmaf_target_max}%, increasing CRF.")
             stage.crf_range_min = crf_to_test + 1
         else:
             # Quality too low, need less compression -> decrease CRF
-            log.info(f"VMAF {current_vmaf}% is below target min {VMAF_TARGET_MIN}%, decreasing CRF.")
+            log.info(f"VMAF {current_vmaf}% is below target min {vmaf_target_min}%, decreasing CRF.")
             stage.crf_range_max = crf_to_test - 1
 
         job.encoder_data.encoding_stage = EncodingStage(
@@ -162,13 +176,7 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
             encoding_finished_datetime=encoding_finished_time.isoformat(),
             encoding_time_seconds=encoding_duration_seconds
         ),
-        environment=Environment(
-            script_version=app_config.version,
-            ffmpeg_version="unknown",  # TODO: extract ffmpeg version
-            encoder_version="unknown",  # TODO: extract encoder version
-            cpu_name="unknown",  # TODO: extract CPU name
-            cpu_threads=-1  # TODO: extract CPU data
-        ),
+        environment=environment_extractor.extract(),
         ffmpeg_metadata=ffmpeg_metadata_extractor.extract(output_file_path)
     )
 

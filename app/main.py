@@ -83,12 +83,19 @@ def main():
         if (job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.CRF_FOUND
                 or job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.COMPLETED):
             log.info("Job already encoded, performing cleanup...")
-            stage = job.encoder_data.encoding_stage
+
+            deleted_files_count = 0
             for iteration in job.encoder_data.iterations:
-                if iteration.encoder_settings.crf != stage.crf_range_min:
+                if iteration.execution_data.source_to_encoded_vmaf_percent < app_config.vmaf_min:
                     output_file_path = Path(app_config.output_dir) / iteration.file_attributes.file_name
                     log.info(f"Deleting non-final iteration file: {output_file_path}")
                     file_utils.delete_file(output_file_path)
+                    deleted_files_count += 1
+            if deleted_files_count >= len(job.encoder_data.iterations):
+                log.warning("None of the iteration files were of acceptable quality. Will use the original file.")
+                input_file_name = file_utils.get_file_name_with_extension(job.source_file_path)
+                output_file_path = Path(app_config.output_dir) / input_file_name
+                file_utils.copy_file(job.source_file_path, output_file_path)
 
         log.info(f"Finished job for source video: {job.source_file_path}")
 

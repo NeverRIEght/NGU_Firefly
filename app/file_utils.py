@@ -4,6 +4,7 @@ log = logging.getLogger(__name__)
 
 from pathlib import Path
 
+import shutil
 
 def get_file_name_with_extension(file_path: Path) -> str:
     return file_path.name
@@ -50,3 +51,12 @@ def delete_file(file_path: Path) -> bool:
             log.error(f"Error deleting file {file_path}. Details: \n{e}")
             return False
     return False
+
+def copy_file(source_path: Path, destination_path: Path) -> bool:
+    try:
+        shutil.copy2(source_path, destination_path)
+        log.debug(f"Copied file from {source_path} to {destination_path}")
+        return True
+    except OSError as e:
+        log.error(f"Error copying file from {source_path} to {destination_path}. Details: \n{e}")
+        return False

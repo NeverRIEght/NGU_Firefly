@@ -44,7 +44,7 @@ def delete_file(file_path: Path) -> bool:
     if file_path.is_file():
         try:
             file_path.unlink()
-            log.info(f"Deleted file: {file_path}")
+            log.debug(f"Deleted file: {file_path}")
             return True
         except OSError as e:
             log.error(f"Error deleting file {file_path}. Details: \n{e}")

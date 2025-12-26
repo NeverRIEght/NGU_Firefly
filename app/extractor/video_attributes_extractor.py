@@ -62,20 +62,26 @@ def get_video_duration(video_path: Path) -> float | None:
             'ffprobe',
             '-v', 'error',
             '-select_streams', 'v:0',
-            '-show_entries', 'format=duration',
+            '-show_entries', 'format=duration:stream=duration',
             '-of', 'json',
             str(video_path)
         ]
         result = subprocess.run(command, capture_output=True, text=True, check=True)
-        duration_info = json.loads(result.stdout)
-        duration = float(duration_info['format']['duration'])
-        if duration < 0:
-            log.warning(f"Negative duration for {video_path}. Returning None.")
+        data = json.loads(result.stdout)
+
+        duration_str = data.get('streams', [{}])[0].get('duration') or data.get('format', {}).get('duration')
+
+        if not duration_str or duration_str == 'N/A':
+            log.warning(f"Duration is N/A for {video_path}")
             return None
-        log.info(f"Got duration for {video_path}: {duration} seconds")
+
+        duration = float(duration_str)
+        if duration < 0:
+            return None
+
         return duration
-    except (subprocess.CalledProcessError, KeyError, ValueError):
-        log.error(f"Error getting duration for {video_path}. Returning None.")
+    except (subprocess.CalledProcessError, KeyError, ValueError, IndexError) as e:
+        log.error(f"Error getting duration: {e}")
         return None
 
 

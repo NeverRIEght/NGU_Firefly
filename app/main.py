@@ -1,4 +1,5 @@
 import logging
+import time
 from pathlib import Path
 
 from app import encoder
@@ -52,11 +53,17 @@ def main():
 
     jobs_list = job_composer.compose_jobs()
     for job in jobs_list:
-        is_error: bool = job.encoder_data.encoding_stage.stage_number_from_1 < 0
+        job_start_time = time.perf_counter()
+        was_job_already_processed: bool = False
 
+        if (job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.CRF_FOUND
+                or job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.COMPLETED):
+            was_job_already_processed = True
+
+        is_error: bool = job.encoder_data.encoding_stage.stage_number_from_1 < 0
         if is_error:
             log.warning(f"Job for source video {job.source_file_path} is in error state: "
-                      f"{job.encoder_data.encoding_stage.stage_name}. Skipping...")
+                        f"{job.encoder_data.encoding_stage.stage_name}. Skipping...")
             continue
 
         if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.PREPARED:
@@ -96,6 +103,12 @@ def main():
                 input_file_name = file_utils.get_file_name_with_extension(job.source_file_path)
                 output_file_path = Path(app_config.output_dir) / input_file_name
                 file_utils.copy_file(job.source_file_path, output_file_path)
+
+        job_end_time = time.perf_counter()
+        job_duration_seconds = job_end_time - job_start_time
+
+        if not was_job_already_processed:
+            job.encoder_data.encoding_stage.job_total_time_seconds = job_duration_seconds
 
         log.info(f"Finished job for source video: {job.source_file_path}")
 

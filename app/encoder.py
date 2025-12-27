@@ -37,6 +37,7 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
     stage = job.encoder_data.encoding_stage
 
     while True:
+        iteration_start_time = time.perf_counter()
         crf_to_test = _predict_next_crf(job, (vmaf_target_min + vmaf_target_max) / 2)
 
         if crf_to_test < app_config.crf_min or crf_to_test > app_config.crf_max:
@@ -56,7 +57,16 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
         log.info(f"Testing CRF={crf_to_test} in range {stage.crf_range_min}-{stage.crf_range_max}")
 
         iteration = _encode_iteration(job_context=job, crf=crf_to_test)
+
+        vmaf_calculation_start_time = time.perf_counter()
         current_vmaf = iteration.execution_data.source_to_encoded_vmaf_percent
+        vmaf_calculation_end_time = time.perf_counter()
+        vmaf_calculation_duration_seconds = vmaf_calculation_end_time - vmaf_calculation_start_time
+        iteration.execution_data.calculating_vmaf_time_seconds = vmaf_calculation_duration_seconds
+
+        iteration_end_time = time.perf_counter()
+        iteration_duration_seconds = iteration_end_time - iteration_start_time
+        iteration.execution_data.iteration_time_seconds = iteration_duration_seconds
 
         if stage.last_vmaf is not None and stage.last_crf is not None:
             vmaf_delta = abs(current_vmaf - stage.last_vmaf)

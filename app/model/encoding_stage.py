@@ -11,6 +11,7 @@ class EncodingStage(BaseModel):
     crf_range_max: Optional[int] = None
     last_vmaf: Optional[float] = None
     last_crf: Optional[float] = None
+    job_total_time_seconds: Optional[float] = None
 
 class EncodingStageNamesEnum(str, Enum):
     PREPARED = "job_prepared" # 1

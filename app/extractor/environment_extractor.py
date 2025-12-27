@@ -3,7 +3,7 @@ import subprocess
 
 from app.app_config import ConfigManager
 from app.model.environment import Environment
-
+from cpuinfo import get_cpu_info
 
 def extract() -> Environment:
     app_config = ConfigManager.get_config()
@@ -12,8 +12,8 @@ def extract() -> Environment:
         script_version=app_config.version,
         ffmpeg_version=_extract_ffmpeg_version(),
         encoder_version="unknown",  # TODO: extract encoder version
-        cpu_name="unknown",  # TODO: extract CPU name
-        cpu_threads=-1  # TODO: extract CPU data
+        cpu_name=_extract_cpu_name(),
+        cpu_threads=_extract_cpu_threads()
     )
 
 
@@ -43,8 +43,20 @@ def _extract_encoder_version() -> str:
 
 
 def _extract_cpu_name() -> str:
-    pass
+    cpu_info = get_cpu_info()
+    cpu_model = cpu_info['brand_raw']
+
+    if cpu_model:
+        return cpu_model
+    else:
+        return "unknown"
 
 
 def _extract_cpu_threads() -> int:
-    pass
+    cpu_info = get_cpu_info()
+    cpu_threads = cpu_info['count']
+
+    if cpu_threads:
+        return cpu_threads
+    else:
+        return -1

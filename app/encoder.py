@@ -291,7 +291,6 @@ def _compose_encoding_command(job_context: EncoderJobContext,
         '-preset', app_config.encode_preset,
 
         '-fps_mode', 'passthrough',
-        '-r', str(job_context.encoder_data.source_video.video_attributes.fps),
 
         *color_arguments,
 

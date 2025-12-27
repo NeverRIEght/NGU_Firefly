@@ -148,13 +148,16 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
 
 
 def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
-    log.info(f"Encoding iteration with CRF={crf} of job {job_context}")
+    log.info("Encoding iteration...")
+    log.info("|-Source file: %s", job_context.source_file_path)
+    log.info("|-CRF: %d", crf)
 
     app_config = ConfigManager.get_config()
 
     threads_count = _calculate_threads_count()
     input_file_path = job_context.source_file_path
     output_file_path = _generate_output_file_path(input_file_path, crf)
+    log.info("|-Output file: %s", output_file_path)
 
     if file_utils.check_file_exists(output_file_path):
         file_utils.delete_file(output_file_path)
@@ -209,6 +212,10 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
     )
 
     job_context.encoder_data.iterations.append(iteration)
+
+    log.info("Iteration encoded.")
+    log.info("|-Source file: %s", job_context.source_file_path)
+    log.info("|-CRF: %d", crf)
 
     return iteration
 
@@ -315,7 +322,7 @@ def _compose_encoding_command(job_context: EncoderJobContext,
 def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_file_path: Path) -> EncoderJobContext:
     input_file_path = job_context.source_file_path
 
-    log.info(f"Starting encode for: {input_file_path}")
+    log.debug(f"Starting encode for: {input_file_path}")
 
     process = None
 
@@ -337,7 +344,7 @@ def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_f
 
             raise EncodingError("FFmpeg failed to encode the video.")
 
-        log.info(f"Encoding finished successfully for: {output_file_path}")
+        log.debug(f"Encoding finished successfully for: {output_file_path}")
         return job_context
     except FileNotFoundError:
         log.error("FFmpeg not found. Please check your installation and PATH settings.")

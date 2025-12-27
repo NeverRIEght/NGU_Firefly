@@ -2,6 +2,8 @@ import logging
 import os
 import time
 
+from app_config import ConfigManager
+
 log = logging.getLogger(__name__)
 
 import json
@@ -57,6 +59,12 @@ def calculate_vmaf(
     # - container metadata lies
     # - VMAF undefined behavior
 
+    app_config = ConfigManager.get_config()
+    if app_config.is_silent:
+        n_threads = 1
+    else:
+        n_threads = os.cpu_count()
+
     try:
         model_param = model_path.name
         log_param = log_filename
@@ -65,7 +73,7 @@ def calculate_vmaf(
             f"[1:v][0:v]scale2ref=flags=bicubic[dist][ref];"
             f"[dist]format=yuv420p[dist_f];"
             f"[ref]format=yuv420p[ref_f];"
-            f"[dist_f][ref_f]libvmaf=model='path={model_param}':"
+            f"[dist_f][ref_f]libvmaf=model='path={model_param}:n_threads={n_threads}':"
             f"log_path='{log_param}':log_fmt=json"
         )
 

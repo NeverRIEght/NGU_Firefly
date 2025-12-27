@@ -58,11 +58,7 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
 
         iteration = _encode_iteration(job_context=job, crf=crf_to_test)
 
-        vmaf_calculation_start_time = time.perf_counter()
         current_vmaf = iteration.execution_data.source_to_encoded_vmaf_percent
-        vmaf_calculation_end_time = time.perf_counter()
-        vmaf_calculation_duration_seconds = vmaf_calculation_end_time - vmaf_calculation_start_time
-        iteration.execution_data.calculating_vmaf_time_seconds = vmaf_calculation_duration_seconds
 
         iteration_end_time = time.perf_counter()
         iteration_duration_seconds = iteration_end_time - iteration_start_time
@@ -167,6 +163,11 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
 
     source_video_attributes = job_context.encoder_data.source_video.video_attributes
 
+    vmaf_calculation_start_time = time.perf_counter()
+    vmaf_value = calculate_vmaf(input_file_path, output_file_path, source_video_attributes)
+    vmaf_calculation_end_time = time.perf_counter()
+    vmaf_calculation_duration_seconds = vmaf_calculation_end_time - vmaf_calculation_start_time
+
     iteration = Iteration(
         file_attributes=FileAttributes(
             file_name=output_file_path.name,
@@ -182,9 +183,10 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
         ),
         execution_data=ExecutionData(
             ffmpeg_command_used=readable_command,
-            source_to_encoded_vmaf_percent=calculate_vmaf(input_file_path, output_file_path, source_video_attributes),
+            source_to_encoded_vmaf_percent=vmaf_value,
             encoding_finished_datetime=encoding_finished_time.isoformat(),
-            encoding_time_seconds=encoding_duration_seconds
+            encoding_time_seconds=encoding_duration_seconds,
+            calculating_vmaf_time_seconds=vmaf_calculation_duration_seconds,
         ),
         environment=environment_extractor.extract(),
         ffmpeg_metadata=ffmpeg_metadata_extractor.extract(output_file_path)

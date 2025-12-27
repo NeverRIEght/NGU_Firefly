@@ -34,15 +34,32 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
     vmaf_target_max = app_config.vmaf_max
     efficiency_threshold = app_config.efficiency_threshold
 
-    stage = job.encoder_data.encoding_stage
-
     while True:
+        stage = job.encoder_data.encoding_stage
         iteration_start_time = time.perf_counter()
+
+        if stage.crf_range_min > stage.crf_range_max:
+            log.warning(f"CRF bounds are broken. Ending search.")
+            log.warning(f"|-Stage bounds: %s-%s", stage.crf_range_min, stage.crf_range_max)
+            log.warning(f"|-Last tested CRF: %s", stage.last_crf)
+            job.encoder_data.encoding_stage = EncodingStage(
+                stage_number_from_1=-3,
+                stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
+                crf_range_min=stage.crf_range_min,
+                crf_range_max=stage.crf_range_max,
+                last_vmaf=stage.last_vmaf,
+                last_crf=stage.last_crf
+            )
+            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+            break
+
         crf_to_test = _predict_next_crf(job, (vmaf_target_min + vmaf_target_max) / 2)
 
-        if crf_to_test < app_config.crf_min or crf_to_test > app_config.crf_max:
-            log.warning(f"Predicted CRF {crf_to_test} is out of bounds ({app_config.crf_min}-{app_config.crf_max}). "
-                        f"Ending search.")
+        if (crf_to_test < job.encoder_data.encoding_stage.crf_range_min
+                or crf_to_test > job.encoder_data.encoding_stage.crf_range_max):
+            log.warning(f"Predicted CRF is out of bounds. Ending search.")
+            log.warning(f"|-Stage bounds: %s-%s", stage.crf_range_min, stage.crf_range_max)
+            log.warning(f"|-Predicted CRF: %s", crf_to_test)
             job.encoder_data.encoding_stage = EncodingStage(
                 stage_number_from_1=-3,
                 stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
@@ -57,7 +74,6 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
         log.info(f"Testing CRF={crf_to_test} in range {stage.crf_range_min}-{stage.crf_range_max}")
 
         iteration = _encode_iteration(job_context=job, crf=crf_to_test)
-
         current_vmaf = iteration.execution_data.source_to_encoded_vmaf_percent
 
         iteration_end_time = time.perf_counter()
@@ -263,6 +279,8 @@ def _compose_encoding_command(job_context: EncoderJobContext,
             '-color_trc', source_metadata.color_trc,
             '-colorspace', source_metadata.colorspace,
         ]
+    else:
+        log.warning("Source video is missing color metadata, encoding without explicit color settings.")
 
     command = [
         'ffmpeg',
@@ -271,6 +289,9 @@ def _compose_encoding_command(job_context: EncoderJobContext,
         '-c:v', 'libx265',
         '-x265-params', f'crf={crf}:pools={threads_count}',
         '-preset', app_config.encode_preset,
+
+        '-fps_mode', 'passthrough',
+        '-r', str(job_context.encoder_data.source_video.video_attributes.fps),
 
         *color_arguments,
 

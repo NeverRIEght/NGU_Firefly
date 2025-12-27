@@ -1,8 +1,11 @@
 import logging
 
+import file_utils
 from app.model.encoder_data_json import EncoderDataJson
 from app.model.encoder_job_context import EncoderJobContext
 from app.model.encoding_stage import EncodingStage, EncodingStageNamesEnum
+from app.model.file_attributes import FileAttributes
+from app.model.source_video import SourceVideo
 
 log = logging.getLogger(__name__)
 
@@ -31,25 +34,22 @@ def compose_jobs() -> list[EncoderJobContext]:
 
     for file in output_dir.iterdir():
         if file.is_file() and file.name.endswith("_encoderdata.json"):
+            metadata_file_path = file
             try:
-                log.debug("Loading existing json metadata file: %s", file)
-                json_data = load_from_json(file)
+                log.debug("Loading existing json metadata file: %s", metadata_file_path)
+                json_data = load_from_json(metadata_file_path)
 
-                source_video_name = json_data.source_video.file_attributes.file_name
-
-                # search input directory for the corresponding video file
-                source_video_path = input_dir / source_video_name
+                source_video_path = input_dir / json_data.source_video.file_attributes.file_name
                 if not source_video_path.exists():
-                    log.error(f"Source video file {source_video_name} not found in"
-                              f"input directory for metadata file {file}. Deleting metadata file.")
-                    delete_file(source_video_path)
+                    log.error("Failed to validate metadata json file.")
+                    log.error("|-Reason: source video file not found.")
+                    log.error("|-Metadata file: %s", metadata_file_path)
+                    log.error("|-Expected source video path: %s", source_video_path)
                     continue
-
-                json_file_path = file
 
                 job = EncoderJobContext(
                     source_file_path=source_video_path,
-                    metadata_json_file_path=json_file_path,
+                    metadata_json_file_path=metadata_file_path,
                     encoder_data=json_data
                 )
 
@@ -60,8 +60,8 @@ def compose_jobs() -> list[EncoderJobContext]:
                 log.info("Composing encoding jobs...")
                 log.info("|-Loading jobs from existing metadata files... %d", jsons_loaded)
             except Exception as e:
-                log.warning(f"Invalid json metadata file found: {file}. Exception: {e}. Deleting file.")
-                delete_file(file)
+                log.warning(f"Invalid json metadata file found: {metadata_file_path}. Exception: {e}. Deleting file.")
+                delete_file(metadata_file_path)
 
     log.info("Composing encoding jobs...")
     log.info("|-Loaded jobs from existing metadata files: %d", jsons_loaded)
@@ -152,7 +152,17 @@ def _initialize_encoder_job(source_file_path: Path, json_file_path: Path) -> Enc
         crf_range_max=app_config.crf_max,
     )
 
+    file_attributes = FileAttributes(
+        file_name=get_file_name_with_extension(source_file_path),
+        file_size_megabytes=file_utils.get_file_size_megabytes(source_file_path)
+    )
+
+    source_video = SourceVideo(
+        file_attributes=file_attributes,
+    )
+
     encoder_data = EncoderDataJson(
+        source_video=source_video,
         encoding_stage=stage
     )
 

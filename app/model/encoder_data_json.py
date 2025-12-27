@@ -8,6 +8,6 @@ from app.model.source_video import SourceVideo
 
 
 class EncoderDataJson(BaseModel):
-    source_video: Optional[SourceVideo] = None
+    source_video: SourceVideo
     encoding_stage: EncodingStage
     iterations: List[Iteration] = Field(default_factory=list)

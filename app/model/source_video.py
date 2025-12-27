@@ -9,6 +9,6 @@ from app.model.video_attributes import VideoAttributes
 
 class SourceVideo(BaseModel):
     file_attributes: FileAttributes
-    sha256_hash: Optional[str]
-    video_attributes: VideoAttributes
-    ffmpeg_metadata: FfmpegMetadata
+    sha256_hash: Optional[str] = None
+    video_attributes: Optional[VideoAttributes] = None
+    ffmpeg_metadata: Optional[FfmpegMetadata] = None

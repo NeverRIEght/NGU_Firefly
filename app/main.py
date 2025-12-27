@@ -52,18 +52,23 @@ def main():
     log.info("Starting session...")
 
     jobs_list = job_composer.compose_jobs()
+    processed_jobs_count = 0
     for job in jobs_list:
         job_start_time = time.perf_counter()
         was_job_already_processed: bool = False
 
         if (job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.CRF_FOUND
                 or job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.COMPLETED):
+            processed_jobs_count += 1
             was_job_already_processed = True
 
         is_error: bool = job.encoder_data.encoding_stage.stage_number_from_1 < 0
         if is_error:
-            log.warning(f"Job for source video {job.source_file_path} is in error state: "
-                        f"{job.encoder_data.encoding_stage.stage_name}. Skipping...")
+            log.info("Job finished with an error.")
+            log.info("|-Source video: %s", job.source_file_path)
+            log.info("|-Error name: %s", job.encoder_data.encoding_stage.stage_name)
+            log.info("|-Error code: %s", job.encoder_data.encoding_stage.stage_number_from_1)
+            processed_jobs_count += 1
             continue
 
         if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.PREPARED:
@@ -89,17 +94,18 @@ def main():
 
         if (job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.CRF_FOUND
                 or job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.COMPLETED):
-            log.info("Job already encoded, performing cleanup...")
+            log.info("Job encoded. Performing cleanup...")
 
             deleted_files_count = 0
             for iteration in job.encoder_data.iterations:
                 if iteration.execution_data.source_to_encoded_vmaf_percent < app_config.vmaf_min:
                     output_file_path = Path(app_config.output_dir) / iteration.file_attributes.file_name
-                    log.info(f"Deleting non-final iteration file: {output_file_path}")
-                    file_utils.delete_file(output_file_path)
-                    deleted_files_count += 1
+                    if output_file_path.exists():
+                        log.info("|-Deleting non-final iteration file: %s", output_file_path)
+                        file_utils.delete_file(output_file_path)
+                        deleted_files_count += 1
             if deleted_files_count >= len(job.encoder_data.iterations):
-                log.warning("None of the iteration files were of acceptable quality. Will use the original file.")
+                log.warning("|-None of the iteration files were of acceptable quality. Will use the original file.")
                 input_file_name = file_utils.get_file_name_with_extension(job.source_file_path)
                 output_file_path = Path(app_config.output_dir) / input_file_name
                 file_utils.copy_file(job.source_file_path, output_file_path)
@@ -110,7 +116,11 @@ def main():
         if not was_job_already_processed:
             job.encoder_data.encoding_stage.job_total_time_seconds = job_duration_seconds
 
-        log.info(f"Finished job for source video: {job.source_file_path}")
+        processed_jobs_count += 1
+        log.info("Job finished.")
+        log.info("|-Source video: %s", job.source_file_path)
+        log.info("|-Total time processing: %.2f seconds", job_duration_seconds)
+        log.info("|-Processed jobs: %d/%d", processed_jobs_count, len(jobs_list))
 
 
 if __name__ == "__main__":

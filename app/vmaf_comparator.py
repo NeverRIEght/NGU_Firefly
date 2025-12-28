@@ -2,7 +2,7 @@ import logging
 import os
 import time
 
-from app_config import ConfigManager
+from app.extractor import environment_extractor
 
 log = logging.getLogger(__name__)
 
@@ -59,11 +59,8 @@ def calculate_vmaf(
     # - container metadata lies
     # - VMAF undefined behavior
 
-    app_config = ConfigManager.get_config()
-    if app_config.is_silent:
-        n_threads = 1
-    else:
-        n_threads = os.cpu_count()
+    n_threads = environment_extractor.get_available_cpu_threads()
+    log.info("Using %d threads for VMAF calculation.", n_threads)
 
     try:
         model_param = model_path.name

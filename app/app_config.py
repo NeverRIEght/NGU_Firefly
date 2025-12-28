@@ -4,10 +4,11 @@ from typing import Optional
 
 class AppConfig(BaseModel):
     app_name: str = Field("video_encoder", description="The name of the application")
-    version: str = Field("0.7.3", description="The version of the application")
+    version: str = Field("0.8.0", description="The version of the application")
     input_dir: str = Field(..., description="Directory with initial videos of mp4 format. Will be scanned recursively without limitation of depth.")
     output_dir: str = Field(..., description="Directory where processed videos will be saved.")
-    is_silent: bool = Field(False, description="Silent mode, which uses only one thread.")
+    randomize_threads_count: bool = Field(False, description="Randomize the number of CPU threads used for encoding and VMAF calculation among valid options.")
+    threads_count: int = Field(None, description="Number of threads to use for encoding and VMAF calculation.")
     crf_min: int = Field(12, description="CRF values for binary search - minimum")
     crf_max: int = Field(40, description="CRF values for binary search - maximum")
     vmaf_min: float = Field(96.0, description="Minimum acceptable VMAF score for encoded videos")
@@ -26,7 +27,8 @@ def load_config_from_env() -> AppConfig:
     config = AppConfig(
         input_dir=os.getenv("INPUT_DIR", ""),
         output_dir=os.getenv("OUTPUT_DIR", ""),
-        is_silent=os.getenv("IS_SILENT", "False").lower() in ("true", "True", "1", "yes"),
+        randomize_threads_count=os.getenv("RANDOMIZE_THREADS_COUNT", "False").lower() in ("true", "True", "1", "yes"),
+        threads_count=int(os.getenv("THREADS_COUNT", "0")),
         crf_min=int(os.getenv("CRF_MIN", "12")),
         crf_max=int(os.getenv("CRF_MAX", "40")),
         vmaf_min=float(os.getenv("VMAF_MIN", "96.0")),

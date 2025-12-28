@@ -178,10 +178,11 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
 
     app_config = ConfigManager.get_config()
 
-    threads_count = _calculate_threads_count()
+    threads_count = environment_extractor.get_available_cpu_threads()
     input_file_path = job_context.source_file_path
     output_file_path = _generate_output_file_path(input_file_path, crf)
     log.info("|-Output file: %s", output_file_path)
+    log.info("|-Using threads: %d", threads_count)
 
     if file_utils.check_file_exists(output_file_path):
         file_utils.delete_file(output_file_path)
@@ -206,6 +207,10 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
 
     source_video_attributes = job_context.encoder_data.source_video.video_attributes
 
+    log.info("Encoding finished.")
+    log.info("Calculating VMAF...")
+    log.info("|-Source file: %s", job_context.source_file_path)
+    log.info("|-Encoded file: %s", output_file_path)
     vmaf_calculation_start_time = time.perf_counter()
     vmaf_value = calculate_vmaf(input_file_path, output_file_path, source_video_attributes)
     vmaf_calculation_end_time = time.perf_counter()
@@ -282,15 +287,6 @@ def _generate_output_file_path(input_file_path: Path, crf: int) -> Path:
 
     output_file_path = output_folder_path / output_filename
     return output_file_path
-
-
-def _calculate_threads_count() -> int:
-    app_config = ConfigManager.get_config()
-    if app_config.is_silent:
-        threads_count = 1
-    else:
-        threads_count = os.cpu_count()
-    return threads_count
 
 
 def _compose_encoding_command(job_context: EncoderJobContext,

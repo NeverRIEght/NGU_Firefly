@@ -1,3 +1,5 @@
+import os
+import random
 import re
 import subprocess
 
@@ -16,6 +18,17 @@ def extract() -> Environment:
         cpu_threads=_extract_cpu_threads()
     )
 
+def get_available_cpu_threads() -> int:
+    app_config = ConfigManager.get_config()
+    if not app_config.randomize_threads_count:
+        return app_config.threads_count
+
+    actual_threads = _extract_cpu_threads()
+
+    possible_options = [1, 2, 4, 8, 12, 16]
+    valid_options = [opt for opt in possible_options if opt <= actual_threads]
+
+    return random.choice(valid_options)
 
 def _extract_ffmpeg_version() -> str:
     try:

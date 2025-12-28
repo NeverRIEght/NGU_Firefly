@@ -115,6 +115,7 @@ def main():
 
         if not was_job_already_processed:
             job.encoder_data.encoding_stage.job_total_time_seconds = job_duration_seconds
+            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
 
         processed_jobs_count += 1
         log.info("Job finished.")

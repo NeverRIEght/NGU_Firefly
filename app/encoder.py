@@ -1,4 +1,5 @@
 import logging
+import re
 
 from app import file_utils
 from app import json_serializer
@@ -333,39 +334,92 @@ def _compose_encoding_command(job_context: EncoderJobContext,
 
         str(output_file_path),
 
-        '-loglevel', 'error',
+        '-progress', 'pipe:2',
+        '-loglevel', 'info',
         '-hide_banner'
     ]
 
     return command
 
 
+def _format_duration(seconds: float) -> str:
+    seconds = int(seconds)
+    if seconds < 0:
+        return "0s"
+
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+
+    parts = []
+    if h > 0:
+        parts.append(f"{h}h")
+    if m > 0:
+        parts.append(f"{m}m")
+    if s > 0 or not parts:
+        parts.append(f"{s}s")
+
+    return " ".join(parts)
+
 def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_file_path: Path) -> EncoderJobContext:
     input_file_path = job_context.source_file_path
+
+    total_duration = job_context.encoder_data.source_video.video_attributes.duration_seconds
 
     log.debug(f"Starting encode for: {input_file_path}")
 
     process = None
-
+    start_real_time = time.perf_counter()
     try:
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            universal_newlines=True,
             bufsize=1
         )
 
-        _, stderr = process.communicate()
+        time_re = re.compile(r"out_time_ms=(\d+)")
+
+        while True:
+            line = process.stderr.readline()
+            if not line and process.poll() is not None:
+                break
+
+            if line:
+                match = time_re.search(line)
+                if match:
+                    # Video time processed so far (in seconds)
+                    current_video_time = int(match.group(1)) / 1000000
+                    elapsed_real_time = time.perf_counter() - start_real_time
+
+                    if total_duration > 0 and current_video_time > 0:
+                        percent = min(100, (current_video_time / total_duration) * 100)
+
+                        # Predict remaining time (ETA)
+                        # Speed = current_video_time / elapsed_real_time
+                        # Remaining_video = total_duration - current_video_time
+                        # ETA = Remaining_video / Speed
+                        eta_seconds = elapsed_real_time * (total_duration - current_video_time) / current_video_time
+
+                        elapsed_str = _format_duration(elapsed_real_time)
+                        eta_str = _format_duration(eta_seconds)
+
+                        status_line = (
+                            f"\rEncoding progress: {percent:.2f}% | "
+                            f"Elapsed time: {elapsed_str} | "
+                            f"Remaining time: ~{eta_str} | "
+                            f"Video duration (encoded/total): {current_video_time:.1f}/{total_duration:.1f}s"
+                        )
+                        print(status_line, end="", flush=True)
+
+        print()
 
         if process.returncode != 0:
             log.error(f"Error while encoding the file: '{input_file_path}'.")
-            log.error(f"Return code: {process.returncode}")
-            log.error(f"FFmpeg Error Output:\n{stderr}")
-
             raise EncodingError("FFmpeg failed to encode the video.")
 
-        log.debug(f"Encoding finished successfully for: {output_file_path}")
         return job_context
     except FileNotFoundError:
         log.error("FFmpeg not found. Please check your installation and PATH settings.")

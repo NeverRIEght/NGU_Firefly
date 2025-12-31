@@ -80,23 +80,6 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
         iteration_duration_seconds = iteration_end_time - iteration_start_time
         iteration.execution_data.iteration_time_seconds = iteration_duration_seconds
 
-        if not _is_encoding_efficient(job, current_vmaf, crf_to_test):
-            best_iteration = min(
-                job.encoder_data.iterations,
-                key=lambda i: abs(i.execution_data.source_to_encoded_vmaf_percent - app_config.vmaf_min)
-            )
-
-            job.encoder_data.encoding_stage = EncodingStage(
-                stage_number_from_1=-2,
-                stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
-                crf_range_min=best_iteration.encoder_settings.crf,
-                crf_range_max=best_iteration.encoder_settings.crf,
-                last_vmaf=best_iteration.execution_data.source_to_encoded_vmaf_percent,
-                last_crf=best_iteration.encoder_settings.crf
-            )
-            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
-            break
-
         if vmaf_target_min <= current_vmaf <= vmaf_target_max:
             log.info("CRF search successful. Ending search.")
             log.info(f"|-Best CRF: {crf_to_test}")
@@ -109,6 +92,23 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
                 crf_range_max=crf_to_test,
                 last_vmaf=current_vmaf,
                 last_crf=crf_to_test
+            )
+            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+            break
+
+        if not _is_encoding_efficient(job, current_vmaf, crf_to_test):
+            best_iteration = min(
+                job.encoder_data.iterations,
+                key=lambda i: abs(i.execution_data.source_to_encoded_vmaf_percent - app_config.vmaf_min)
+            )
+
+            job.encoder_data.encoding_stage = EncodingStage(
+                stage_number_from_1=-2,
+                stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
+                crf_range_min=job.encoder_data.encoding_stage.crf_range_min,
+                crf_range_max=job.encoder_data.encoding_stage.crf_range_max,
+                last_vmaf=best_iteration.execution_data.source_to_encoded_vmaf_percent,
+                last_crf=best_iteration.encoder_settings.crf
             )
             json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
             break

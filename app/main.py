@@ -125,9 +125,12 @@ def main():
             job.encoder_data.encoding_stage.job_total_time_seconds = job_duration_seconds
             json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
 
-        job.encoder_data.encoding_stage.stage_number_from_1 = 5
-        job.encoder_data.encoding_stage.stage_name = EncodingStageNamesEnum.COMPLETED
-        json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+        current_stage_num = job.encoder_data.encoding_stage.stage_number_from_1
+        if current_stage_num >= 0:
+            if job.encoder_data.encoding_stage.stage_name != EncodingStageNamesEnum.COMPLETED:
+                job.encoder_data.encoding_stage.stage_number_from_1 = 5
+                job.encoder_data.encoding_stage.stage_name = EncodingStageNamesEnum.COMPLETED
+            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
 
         processed_jobs_count += 1
 

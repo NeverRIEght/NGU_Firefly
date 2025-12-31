@@ -2,6 +2,7 @@ import logging
 import time
 from pathlib import Path
 
+import job_validator
 from app import encoder
 from app import file_utils
 from app import hashing_service
@@ -13,6 +14,8 @@ from app.model.encoding_stage import EncodingStageNamesEnum
 from app.model.file_attributes import FileAttributes
 from app.model.source_video import SourceVideo
 from datetime import datetime, timezone
+
+from app.model.encoder_job_context import EncoderJobContext
 
 logs_dir = Path("../logs")
 logs_dir.mkdir(exist_ok=True)
@@ -54,6 +57,10 @@ def main():
     jobs_list = job_composer.compose_jobs()
     processed_jobs_count = 0
     for job in jobs_list:
+        is_job_valid = job_validator.validate(job)
+        if not is_job_valid:
+            log.error("Job is not valid. Skipping...")
+            continue
         job_start_time = time.perf_counter()
         was_job_already_processed: bool = False
 
@@ -69,6 +76,15 @@ def main():
             log.info("|-Error name: %s", job.encoder_data.encoding_stage.stage_name)
             log.info("|-Error code: %s", job.encoder_data.encoding_stage.stage_number_from_1)
             processed_jobs_count += 1
+
+            safe_error_codes = {EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
+                                EncodingStageNamesEnum.UNREACHABLE_VMAF}
+
+            if job.encoder_data.encoding_stage.stage_name in safe_error_codes:
+                log.info("|-Error is safe. Performing cleanup...")
+                _remove_all_non_final_iteration_files(job)
+                _use_initial_file_as_output(job)
+
             continue
 
         if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.PREPARED:
@@ -96,19 +112,11 @@ def main():
                 or job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.COMPLETED):
             log.info("Job encoded. Performing cleanup...")
 
-            deleted_files_count = 0
-            for iteration in job.encoder_data.iterations:
-                if iteration.execution_data.source_to_encoded_vmaf_percent < app_config.vmaf_min:
-                    output_file_path = Path(app_config.output_dir) / iteration.file_attributes.file_name
-                    if output_file_path.exists():
-                        log.info("|-Deleting non-final iteration file: %s", output_file_path)
-                        file_utils.delete_file(output_file_path)
-                        deleted_files_count += 1
+            deleted_files_count = _remove_all_non_final_iteration_files(job)
             if deleted_files_count >= len(job.encoder_data.iterations):
-                log.warning("|-None of the iteration files were of acceptable quality. Will use the original file.")
-                input_file_name = file_utils.get_file_name_with_extension(job.source_file_path)
-                output_file_path = Path(app_config.output_dir) / input_file_name
-                file_utils.copy_file(job.source_file_path, output_file_path)
+                log.warning(
+                    "|-None of the iteration files were of acceptable quality. Will use the original file as output.")
+                _use_initial_file_as_output(job)
 
         job_end_time = time.perf_counter()
         job_duration_seconds = job_end_time - job_start_time
@@ -127,6 +135,29 @@ def main():
         log.info("|-Source video: %s", job.source_file_path)
         log.info("|-Total time processing: %.2f seconds", job_duration_seconds)
         log.info("|-Processed jobs: %d/%d", processed_jobs_count, len(jobs_list))
+
+
+def _remove_all_non_final_iteration_files(job: EncoderJobContext) -> int:
+    app_config = ConfigManager.get_config()
+
+    deleted_files_count = 0
+    for iteration in job.encoder_data.iterations:
+        if iteration.execution_data.source_to_encoded_vmaf_percent < app_config.vmaf_min:
+            output_file_path = Path(app_config.output_dir) / iteration.file_attributes.file_name
+            if output_file_path.exists():
+                log.info("|-Deleting non-final iteration file: %s", output_file_path)
+                file_utils.delete_file(output_file_path)
+                deleted_files_count += 1
+
+    return deleted_files_count
+
+
+def _use_initial_file_as_output(job: EncoderJobContext):
+    app_config = ConfigManager.get_config()
+    input_file_name = file_utils.get_file_name_with_extension(job.source_file_path)
+    output_file_path = Path(app_config.output_dir) / input_file_name
+    file_utils.copy_file(job.source_file_path, output_file_path)
+    log.info("|-Will use the original file as output.")
 
 
 if __name__ == "__main__":

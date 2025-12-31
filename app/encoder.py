@@ -8,7 +8,6 @@ from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor,
 from app.model.encoder_job_context import EncoderJobContext
 from app.model.encoder_settings import EncoderSettings
 from app.model.encoding_stage import EncodingStageNamesEnum, EncodingStage
-from app.model.environment import Environment
 from app.model.execution_data import ExecutionData
 from app.model.file_attributes import FileAttributes
 from app.model.iteration import Iteration
@@ -16,7 +15,6 @@ from app.vmaf_comparator import calculate_vmaf
 
 log = logging.getLogger(__name__)
 
-import os
 import subprocess
 import time
 from app import hashing_service
@@ -105,8 +103,8 @@ def encode_job(job: EncoderJobContext) -> EncoderJobContext:
             job.encoder_data.encoding_stage = EncodingStage(
                 stage_number_from_1=-2,
                 stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
-                crf_range_min=job.encoder_data.encoding_stage.crf_range_min,
-                crf_range_max=job.encoder_data.encoding_stage.crf_range_max,
+                crf_range_min=stage.crf_range_min,
+                crf_range_max=stage.crf_range_max,
                 last_vmaf=best_iteration.execution_data.source_to_encoded_vmaf_percent,
                 last_crf=best_iteration.encoder_settings.crf
             )

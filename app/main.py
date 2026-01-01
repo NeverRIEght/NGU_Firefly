@@ -66,7 +66,6 @@ def main():
 
         if (job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.CRF_FOUND
                 or job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.COMPLETED):
-            processed_jobs_count += 1
             was_job_already_processed = True
 
         is_error: bool = job.encoder_data.encoding_stage.stage_number_from_1 < 0
@@ -75,7 +74,6 @@ def main():
             log.info("|-Source video: %s", job.source_file_path)
             log.info("|-Error name: %s", job.encoder_data.encoding_stage.stage_name)
             log.info("|-Error code: %s", job.encoder_data.encoding_stage.stage_number_from_1)
-            processed_jobs_count += 1
 
             safe_error_codes = {EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
                                 EncodingStageNamesEnum.UNREACHABLE_VMAF}
@@ -85,6 +83,11 @@ def main():
                 _remove_all_non_final_iteration_files(job)
                 _use_initial_file_as_output(job)
 
+            processed_jobs_count += 1
+            log.info("Job finished.")
+            log.info("|-Source video: %s", job.source_file_path)
+            log.info("|-Total time processing: %.2f seconds", time.perf_counter() - job_start_time)
+            log.info("|-Processed jobs: %d/%d", processed_jobs_count, len(jobs_list))
             continue
 
         if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.PREPARED:

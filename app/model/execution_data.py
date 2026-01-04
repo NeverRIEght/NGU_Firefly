@@ -10,3 +10,4 @@ class ExecutionData(BaseModel):
     encoding_time_seconds: float
     calculating_vmaf_time_seconds: Optional[float] = None
     iteration_time_seconds: Optional[float] = None
+    vmaf_cpu_threads_used: Optional[int] = None

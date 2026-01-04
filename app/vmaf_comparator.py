@@ -16,7 +16,8 @@ from app.model.video_attributes import VideoAttributes
 def calculate_vmaf(
         source_video_path: Path,
         encoded_video_path: Path,
-        source_video_attributes: VideoAttributes
+        source_video_attributes: VideoAttributes,
+        cpu_threads_count: int
 ) -> float:
     """
     Compares two video files using VMAF.
@@ -59,8 +60,7 @@ def calculate_vmaf(
     # - container metadata lies
     # - VMAF undefined behavior
 
-    n_threads = environment_extractor.get_available_cpu_threads()
-    log.info("Using %d threads for VMAF calculation.", n_threads)
+    log.info("Using %d threads for VMAF calculation.", cpu_threads_count)
 
     try:
         model_param = model_path.name
@@ -70,7 +70,7 @@ def calculate_vmaf(
             f"[1:v][0:v]scale2ref=flags=bicubic[dist][ref];"
             f"[dist]format=yuv420p[dist_f];"
             f"[ref]format=yuv420p[ref_f];"
-            f"[dist_f][ref_f]libvmaf=model='path={model_param}:n_threads={n_threads}':"
+            f"[dist_f][ref_f]libvmaf=model='path={model_param}:n_threads={cpu_threads_count}':"
             f"log_path='{log_param}':log_fmt=json"
         )
 

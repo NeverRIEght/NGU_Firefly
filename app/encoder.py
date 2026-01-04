@@ -210,8 +210,15 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
     log.info("Calculating VMAF...")
     log.info("|-Source file: %s", job_context.source_file_path)
     log.info("|-Encoded file: %s", output_file_path)
+
+    cpu_threads_for_vmaf = environment_extractor.get_available_cpu_threads()
+
+
     vmaf_calculation_start_time = time.perf_counter()
-    vmaf_value = calculate_vmaf(input_file_path, output_file_path, source_video_attributes)
+    vmaf_value = calculate_vmaf(input_file_path,
+                                output_file_path,
+                                source_video_attributes,
+                                cpu_threads_for_vmaf)
     vmaf_calculation_end_time = time.perf_counter()
     vmaf_calculation_duration_seconds = vmaf_calculation_end_time - vmaf_calculation_start_time
 
@@ -234,6 +241,7 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
             encoding_finished_datetime=encoding_finished_time.isoformat(),
             encoding_time_seconds=encoding_duration_seconds,
             calculating_vmaf_time_seconds=vmaf_calculation_duration_seconds,
+            vmaf_cpu_threads_used=cpu_threads_for_vmaf
         ),
         environment=environment_extractor.extract(),
         ffmpeg_metadata=ffmpeg_metadata_extractor.extract(output_file_path)

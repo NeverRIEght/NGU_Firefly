@@ -106,6 +106,21 @@ def main():
             json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
 
         if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.METADATA_EXTRACTED:
+            is_hdr = job.encoder_data.source_video.ffmpeg_metadata.is_hdr
+            source_file_name = job.encoder_data.source_video.file_attributes.file_name
+            if is_hdr:
+                log.info("HDR detected: %s. Skipping, HDR is not supported.", source_file_name)
+                job.encoder_data.encoding_stage.stage_number_from_1 = -4
+                job.encoder_data.encoding_stage.stage_name = EncodingStageNamesEnum.SKIPPED_IS_HDR_VIDEO
+                json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                _use_initial_file_as_output(job)
+                processed_jobs_count += 1
+                log.info("Job finished.")
+                log.info("|-Source video: %s", job.source_file_path)
+                log.info("|-Total time processing: %.2f seconds", time.perf_counter() - job_start_time)
+                log.info("|-Processed jobs: %d/%d", processed_jobs_count, len(jobs_list))
+                continue
+
             encoder.encode_job(job)
 
         if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.SEARCHING_CRF:

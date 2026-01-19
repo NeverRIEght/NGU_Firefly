@@ -51,7 +51,8 @@ def extract(path_to_file: Path) -> FfmpegMetadata:
         color_primaries=_extract_color_primaries(path_to_file, stream_data),
         color_trc=_extract_color_trc(path_to_file, stream_data),
         colorspace=_extract_colorspace(path_to_file, stream_data),
-        level=_extract_level(path_to_file, stream_data)
+        level=_extract_level(path_to_file, stream_data),
+        is_hdr=_detect_hdr(path_to_file, stream_data),
     )
 
     return metadata
@@ -124,3 +125,32 @@ def _extract_level(file_path: Path, stream_data) -> str | None:
         log.warning(f"Codec level could not be determined for {file_path}, defaulting to None")
 
     return extracted_level
+
+
+def _detect_hdr(file_path: Path, stream_data) -> bool:
+    # Check Color Transfer Function
+    # smpte2084 is HDR10/Dolby Vision, arib-std-b67 is HLG
+    transfer = stream_data.get('color_transfer', '').lower()
+    hdr_transfers = {'smpte2084', 'arib-std-b67'}
+
+    if transfer in hdr_transfers:
+        log.debug(f"HDR detected via color transfer: {transfer} in {file_path}")
+        return True
+
+    # Check Color Primaries
+    # bt2020 is the standard wide gamut for HDR
+    primaries = stream_data.get('color_primaries', '').lower()
+    if primaries == 'bt2020':
+        log.debug(f"HDR detected via color primaries: {primaries} in {file_path}")
+        return True
+
+    # Check Side Data (fallback for some containers)
+    # Using a flexible check for side_data_type names
+    side_data_list = stream_data.get('side_data_list', [])
+    for entry in side_data_list:
+        data_type = entry.get('side_data_type', '')
+        if any(hdr_keyword in data_type for hdr_keyword in ['Mastering display', 'Content light level', 'HDR10']):
+            log.debug(f"HDR detected via side data: {data_type} in {file_path}")
+            return True
+
+    return False

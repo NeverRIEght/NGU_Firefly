@@ -12,3 +12,4 @@ class FfmpegMetadata(BaseModel):
     colorspace: Optional[str] = None
     profile: Optional[str] = None
     level: Optional[int] = None
+    is_hdr: Optional[bool] = None

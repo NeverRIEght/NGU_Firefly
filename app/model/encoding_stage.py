@@ -23,3 +23,4 @@ class EncodingStageNamesEnum(str, Enum):
     FAILED = "encoding_failed" # -1, general error
     STOPPED_VMAF_DELTA = "stopped_vmaf_delta"  # -2, when VMAF delta between iterations is too small
     UNREACHABLE_VMAF = "unreachable_vmaf"  # -3, when target VMAF cannot be reached within CRF range
+    SKIPPED_IS_HDR_VIDEO = "skipped_is_hdr_video"  # -4, when video is HDR, which is not supported

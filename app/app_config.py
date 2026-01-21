@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 class AppConfig(BaseModel):
-    app_name: str = Field("video_encoder", description="The name of the application")
+    app_name: str = Field("NGU_Firefly", description="The name of the application")
     version: str = Field("1.4.0", description="The version of the application")
     input_dir: str = Field(..., description="Directory with initial videos of mp4 format. Will be scanned recursively without limitation of depth.")
     output_dir: str = Field(..., description="Directory where processed videos will be saved.")

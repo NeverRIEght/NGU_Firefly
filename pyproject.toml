@@ -1,10 +1,11 @@
 [project]
-name = "video-encoder"
-version = "0.1.0"
+name = "NGU_Firefly"
+version = "1.4.0"
 description = ""
 authors = [
     {name = "Mihail Komarov",email = "michaelkomarov03@gmail.com"}
 ]
+license = {text = "GPL-3.0-or-later"}
 requires-python = ">=3.14"
 dependencies = [
     "pydantic (==2.12.5)",

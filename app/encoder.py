@@ -214,7 +214,6 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
 
     cpu_threads_for_vmaf = environment_extractor.get_available_cpu_threads()
 
-
     vmaf_calculation_start_time = time.perf_counter()
     vmaf_value = calculate_vmaf(input_file_path,
                                 output_file_path,
@@ -249,7 +248,7 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
     )
 
     job_context.encoder_data.iterations.append(iteration)
-    _write_embedded_metadata(output_file_path, VideoEmbeddedMetadata.from_iteration(iteration=iteration))
+    _write_embedded_metadata(output_file_path, VideoEmbeddedMetadata.from_job(job=job_context, iteration=iteration))
 
     log.info("Iteration encoded.")
     log.info("|-Source file: %s", job_context.source_file_path)
@@ -490,6 +489,7 @@ def _write_embedded_metadata(output_file_path: Path, metadata: VideoEmbeddedMeta
     except Exception as e:
         log.error(f"Error writing embedded metadata to {output_file_path}: {e}")
         _cleanup_metadata(temp_file, backup_file, output_file_path)
+
 
 def _cleanup_metadata(temp_file: Path, backup_file: Path | None, original_file: Path):
     if temp_file and temp_file.exists():

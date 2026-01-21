@@ -12,6 +12,7 @@ from app.model.execution_data import ExecutionData
 from app.model.file_attributes import FileAttributes
 from app.model.iteration import Iteration
 from app.vmaf_comparator import calculate_vmaf
+from app.model.video_embedded_metadata import VideoEmbeddedMetadata
 
 log = logging.getLogger(__name__)
 
@@ -248,6 +249,7 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
     )
 
     job_context.encoder_data.iterations.append(iteration)
+    _write_embedded_metadata(output_file_path, VideoEmbeddedMetadata.from_iteration(iteration=iteration))
 
     log.info("Iteration encoded.")
     log.info("|-Source file: %s", job_context.source_file_path)
@@ -449,3 +451,51 @@ def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_f
 
 class EncodingError(Exception):
     pass
+
+
+def _write_embedded_metadata(output_file_path: Path, metadata: VideoEmbeddedMetadata):
+    temp_file = output_file_path.with_suffix(".tmp" + output_file_path.suffix)
+    json_str = metadata.model_dump_json()
+
+    cmd = [
+        'ffmpeg',
+        '-i', str(output_file_path),
+        '-metadata', f'comment=encoder_metadata:{json_str}',
+        '-c', 'copy',
+        '-map_metadata', '0',
+        '-movflags', '+faststart',
+        str(temp_file),
+        '-loglevel', 'error',
+        '-y'
+    ]
+
+    backup_file = None
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+
+        backup_file = output_file_path.with_suffix(".old")
+
+        if backup_file.exists():
+            backup_file.unlink()
+
+        output_file_path.rename(backup_file)
+        temp_file.rename(output_file_path)
+        backup_file.unlink()
+
+        log.info(f"Wrote metadata for {output_file_path}")
+    except KeyboardInterrupt as e:
+        log.warning("Metadata writing interrupted! Cleaning up temp files.")
+        _cleanup_metadata(temp_file, backup_file, output_file_path)
+        raise
+    except Exception as e:
+        log.error(f"Error writing embedded metadata to {output_file_path}: {e}")
+        _cleanup_metadata(temp_file, backup_file, output_file_path)
+
+def _cleanup_metadata(temp_file: Path, backup_file: Path | None, original_file: Path):
+    if temp_file and temp_file.exists():
+        temp_file.unlink()
+    if backup_file and backup_file.exists():
+        if not original_file.exists():
+            backup_file.rename(original_file)
+        else:
+            backup_file.unlink()

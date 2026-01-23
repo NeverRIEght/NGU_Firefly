@@ -1,11 +1,12 @@
-import os
 import random
 import re
 import subprocess
 
+from cpuinfo import get_cpu_info
+
 from app.app_config import ConfigManager
 from app.model.environment import Environment
-from cpuinfo import get_cpu_info
+
 
 def extract() -> Environment:
     app_config = ConfigManager.get_config()

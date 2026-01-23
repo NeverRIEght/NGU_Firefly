@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class HdrType(str, Enum):
@@ -23,4 +23,4 @@ class FfmpegMetadata(BaseModel):
     profile: Optional[str] = None
     level: Optional[int] = None
     is_hdr: Optional[bool] = None
-    hdr_type: list[HdrType] = []
+    hdr_type: List[HdrType] = Field(default_factory=list)

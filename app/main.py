@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import job_validator
@@ -10,12 +11,10 @@ from app import job_composer
 from app import json_serializer
 from app.app_config import ConfigManager
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
+from app.model.encoder_job_context import EncoderJobContext
 from app.model.encoding_stage import EncodingStageNamesEnum
 from app.model.file_attributes import FileAttributes
 from app.model.source_video import SourceVideo
-from datetime import datetime, timezone
-
-from app.model.encoder_job_context import EncoderJobContext
 
 logs_dir = Path("../logs")
 logs_dir.mkdir(exist_ok=True)
@@ -107,9 +106,9 @@ def main():
                 json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
 
             if job.encoder_data.encoding_stage.stage_name == EncodingStageNamesEnum.METADATA_EXTRACTED:
-                is_hdr = job.encoder_data.source_video.ffmpeg_metadata.is_hdr
                 source_file_name = job.encoder_data.source_video.file_attributes.file_name
-                if is_hdr:
+                hdr_types = job.encoder_data.source_video.ffmpeg_metadata.hdr_types
+                if hdr_types and len(hdr_types) > 0:
                     log.info("HDR detected: %s. Skipping, HDR is not supported.", source_file_name)
                     job.encoder_data.encoding_stage.stage_number_from_1 = -4
                     job.encoder_data.encoding_stage.stage_name = EncodingStageNamesEnum.SKIPPED_IS_HDR_VIDEO

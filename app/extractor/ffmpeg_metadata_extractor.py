@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import List, Set
+from typing import Set
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ def extract(path_to_file: Path) -> FfmpegMetadata:
         '-select_streams', 'v',
         '-show_entries',
         'stream=width,height,codec_name,r_frame_rate,avg_frame_rate,tags,bit_rate,profile,'
-        + 'pix_fmt,chroma_location,color_primaries,color_transfer,color_space,level'
+        + 'pix_fmt,chroma_location,color_primaries,color_transfer,color_space,level,side_data_list'
         + ':format=size,duration,bit_rate,nb_frames',
         '-of', 'json',
         str(path_to_file),
@@ -42,7 +42,9 @@ def extract(path_to_file: Path) -> FfmpegMetadata:
     except json.JSONDecodeError:
         raise RuntimeError("ffprobe returned unparseable JSON.")
 
-    stream_data = ffprobe_output.get('streams', [{}])[0]
+    streams = ffprobe_output.get('streams', [])
+    video_streams = [s for s in streams if s.get('codec_type') == 'video']
+    stream_data = video_streams[0] if video_streams else {}
     tags = stream_data.get('tags', {})
 
     metadata = FfmpegMetadata(
@@ -54,7 +56,7 @@ def extract(path_to_file: Path) -> FfmpegMetadata:
         color_trc=_extract_color_trc(path_to_file, stream_data),
         colorspace=_extract_colorspace(path_to_file, stream_data),
         level=_extract_level(path_to_file, stream_data),
-        is_hdr=_detect_hdr(path_to_file, stream_data),
+        hdr_types=_detect_hdr_types(stream_data, tags),
     )
 
     return metadata
@@ -63,7 +65,7 @@ def extract(path_to_file: Path) -> FfmpegMetadata:
 def _extract_pixel_aspect_ratio(file_path: Path, stream_data, tags) -> str:
     par = stream_data.get('display_aspect_ratio') or tags.get('display_aspect_ratio')
     if par is None:
-        f"Pixel aspect ratio could not be determined for {file_path}, defaulting to 1:1"
+        log.warning(f"Pixel aspect ratio could not be determined for {file_path}, defaulting to 1:1")
         return "1:1"
 
     return par
@@ -129,16 +131,9 @@ def _extract_level(file_path: Path, stream_data) -> str | None:
     return extracted_level
 
 
-def _detect_hdr(file_path: Path, stream_data) -> bool:
-    hdr_types = detect_hdr_types(stream_data)
-    if hdr_types:
-        log.debug(f"HDR types detected for {file_path}: {', '.join(hdr_types)}")
-        return True
-    return False
-
-
-def detect_hdr_types(stream_data: dict) -> List[HdrType]:
+def _detect_hdr_types(stream_data: dict, tags) -> Set[HdrType]:
     detected: Set[HdrType] = set()
+    tags = tags or {}
 
     transfer = stream_data.get('color_transfer', '').lower()
     side_data_list = stream_data.get('side_data_list', [])
@@ -153,6 +148,9 @@ def detect_hdr_types(stream_data: dict) -> List[HdrType]:
         detected.add(HdrType.PQ)
 
     has_static_metadata = False
+
+    if 'dv_profile' in tags:
+        detected.add(HdrType.DOLBY_VISION)
 
     for entry in side_data_list:
         dt = entry.get('side_data_type', '')
@@ -169,4 +167,4 @@ def detect_hdr_types(stream_data: dict) -> List[HdrType]:
     if is_pq and has_static_metadata:
         detected.add(HdrType.HDR10)
 
-    return sorted(detected)
+    return detected

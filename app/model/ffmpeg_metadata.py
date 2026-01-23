@@ -1,6 +1,16 @@
+from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel
+
+
+class HdrType(str, Enum):
+    DOLBY_VISION = "dolby_vision"
+    HDR10 = "hdr10"
+    HDR10_PLUS = "hdr10_plus"
+    HLG = "hlg"  # SDR-compatible HDR format
+    PQ = "pq"  # PQ is a family of HDR formats: HDR10, HDR10+, Dolby Vision
+    SDR = "sdr"
 
 
 class FfmpegMetadata(BaseModel):
@@ -13,3 +23,4 @@ class FfmpegMetadata(BaseModel):
     profile: Optional[str] = None
     level: Optional[int] = None
     is_hdr: Optional[bool] = None
+    hdr_type: list[HdrType] = []

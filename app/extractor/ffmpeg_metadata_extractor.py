@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import List, Set
 
 log = logging.getLogger(__name__)
 
@@ -7,6 +8,7 @@ from pathlib import Path
 import subprocess
 
 from app.model.ffmpeg_metadata import FfmpegMetadata
+from app.model.ffmpeg_metadata import HdrType
 
 
 def extract(path_to_file: Path) -> FfmpegMetadata:
@@ -128,29 +130,43 @@ def _extract_level(file_path: Path, stream_data) -> str | None:
 
 
 def _detect_hdr(file_path: Path, stream_data) -> bool:
-    # Check Color Transfer Function
-    # smpte2084 is HDR10/Dolby Vision, arib-std-b67 is HLG
-    transfer = stream_data.get('color_transfer', '').lower()
-    hdr_transfers = {'smpte2084', 'arib-std-b67'}
-
-    if transfer in hdr_transfers:
-        log.debug(f"HDR detected via color transfer: {transfer} in {file_path}")
+    hdr_types = detect_hdr_types(stream_data)
+    if hdr_types:
+        log.debug(f"HDR types detected for {file_path}: {', '.join(hdr_types)}")
         return True
-
-    # Check Color Primaries
-    # bt2020 is the standard wide gamut for HDR
-    primaries = stream_data.get('color_primaries', '').lower()
-    if primaries == 'bt2020':
-        log.debug(f"HDR detected via color primaries: {primaries} in {file_path}")
-        return True
-
-    # Check Side Data (fallback for some containers)
-    # Using a flexible check for side_data_type names
-    side_data_list = stream_data.get('side_data_list', [])
-    for entry in side_data_list:
-        data_type = entry.get('side_data_type', '')
-        if any(hdr_keyword in data_type for hdr_keyword in ['Mastering display', 'Content light level', 'HDR10']):
-            log.debug(f"HDR detected via side data: {data_type} in {file_path}")
-            return True
-
     return False
+
+
+def detect_hdr_types(stream_data: dict) -> List[HdrType]:
+    detected: Set[HdrType] = set()
+
+    transfer = stream_data.get('color_transfer', '').lower()
+    side_data_list = stream_data.get('side_data_list', [])
+
+    is_pq = (transfer == 'smpte2084')
+    is_hlg = (transfer == 'arib-std-b67')
+
+    if is_hlg:
+        detected.add(HdrType.HLG)
+
+    if is_pq and not is_hlg:
+        detected.add(HdrType.PQ)
+
+    has_static_metadata = False
+
+    for entry in side_data_list:
+        dt = entry.get('side_data_type', '')
+
+        if 'DOVI' in dt or 'Dolby Vision' in dt:
+            detected.add(HdrType.DOLBY_VISION)
+
+        if 'HDR Dynamic Metadata' in dt and '2094-40' in dt:
+            detected.add(HdrType.HDR10_PLUS)
+
+        if dt in ('Mastering display metadata', 'Content light level settings'):
+            has_static_metadata = True
+
+    if is_pq and has_static_metadata:
+        detected.add(HdrType.HDR10)
+
+    return sorted(detected)

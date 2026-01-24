@@ -4,7 +4,7 @@ import subprocess
 
 from cpuinfo import get_cpu_info
 
-from app.app_config import ConfigManager
+from app.config.app_config import ConfigManager
 from app.model.environment import Environment
 
 

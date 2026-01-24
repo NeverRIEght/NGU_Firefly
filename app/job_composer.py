@@ -10,7 +10,7 @@ from app.model.source_video import SourceVideo
 log = logging.getLogger(__name__)
 
 from pathlib import Path
-from app.app_config import ConfigManager
+from app.config.app_config import ConfigManager
 from app import json_serializer
 from app.json_serializer import load_from_json
 from app.file_utils import get_file_name_with_extension, get_file_name_without_extension, delete_file

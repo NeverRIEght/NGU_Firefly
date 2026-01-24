@@ -9,7 +9,7 @@ from app import file_utils
 from app import hashing_service
 from app import job_composer
 from app import json_serializer
-from app.app_config import ConfigManager
+from app.config.app_config import ConfigManager
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
 from app.model.encoder_job_context import EncoderJobContext
 from app.model.encoding_stage import EncodingStageNamesEnum

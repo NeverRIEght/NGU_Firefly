@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.app_config import ConfigManager
+from app.config.app_config import ConfigManager
 from app.model.iteration import Iteration
 from app.model.encoder_job_context import EncoderJobContext
 

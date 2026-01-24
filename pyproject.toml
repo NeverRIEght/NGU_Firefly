@@ -11,7 +11,8 @@ dependencies = [
     "pydantic (==2.12.5)",
     "python-dotenv (==1.2.1)",
     "numpy (==2.4.0)",
-    "py-cpuinfo (==9.0.0)"
+    "py-cpuinfo (==9.0.0)",
+    "filelock (==3.17.0)"
 ]
 
 

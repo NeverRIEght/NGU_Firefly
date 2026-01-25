@@ -1,10 +1,13 @@
 import logging
 import re
 
+from filelock import Timeout as TimeoutException
+
 from app import file_utils
 from app import json_serializer
 from app.config.app_config import ConfigManager
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor, environment_extractor
+from app.locking import LockManager
 from app.model.encoder_job_context import EncoderJobContext
 from app.model.encoder_settings import EncoderSettings
 from app.model.encoding_stage import EncodingStageNamesEnum, EncodingStage
@@ -25,114 +28,117 @@ from datetime import datetime, timezone
 import numpy as np
 
 
-def encode_job(job: EncoderJobContext) -> EncoderJobContext:
-    log.info("Starting encoding job.")
-    log.info("|-Source file: %s", job.source_file_path)
-
+def encode_job(job: EncoderJobContext):
     app_config = ConfigManager.get_config()
 
-    vmaf_target_min = app_config.vmaf_min
-    vmaf_target_max = app_config.vmaf_max
+    try:
+        with LockManager.acquire_job_lock(Path(job.source_file_path), Path(app_config.output_dir)):
+            log.info("Starting encoding job.")
+            log.info("|-Source file: %s", job.source_file_path)
 
-    while True:
-        stage = job.encoder_data.encoding_stage
-        iteration_start_time = time.perf_counter()
+            vmaf_target_min = app_config.vmaf_min
+            vmaf_target_max = app_config.vmaf_max
 
-        if stage.crf_range_min > stage.crf_range_max:
-            log.warning(f"CRF bounds are broken. Ending search.")
-            log.warning(f"|-Stage bounds: %s-%s", stage.crf_range_min, stage.crf_range_max)
-            log.warning(f"|-Last tested CRF: %s", stage.last_crf)
-            job.encoder_data.encoding_stage = EncodingStage(
-                stage_number_from_1=-3,
-                stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
-                crf_range_min=stage.crf_range_min,
-                crf_range_max=stage.crf_range_max,
-                last_vmaf=stage.last_vmaf,
-                last_crf=stage.last_crf
-            )
-            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
-            break
+            while True:
+                stage = job.encoder_data.encoding_stage
+                iteration_start_time = time.perf_counter()
 
-        crf_to_test = _predict_next_crf(job)
+                if stage.crf_range_min > stage.crf_range_max:
+                    log.warning(f"CRF bounds are broken. Ending search.")
+                    log.warning(f"|-Stage bounds: %s-%s", stage.crf_range_min, stage.crf_range_max)
+                    log.warning(f"|-Last tested CRF: %s", stage.last_crf)
+                    job.encoder_data.encoding_stage = EncodingStage(
+                        stage_number_from_1=-3,
+                        stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
+                        crf_range_min=stage.crf_range_min,
+                        crf_range_max=stage.crf_range_max,
+                        last_vmaf=stage.last_vmaf,
+                        last_crf=stage.last_crf
+                    )
+                    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                    break
 
-        if not _is_crf_prediction_valid(job, crf_to_test):
-            job.encoder_data.encoding_stage = EncodingStage(
-                stage_number_from_1=-3,
-                stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
-                crf_range_min=stage.crf_range_min,
-                crf_range_max=stage.crf_range_max,
-                last_vmaf=stage.last_vmaf,
-                last_crf=stage.last_crf
-            )
-            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
-            break
+                crf_to_test = _predict_next_crf(job)
 
-        log.info("Starting iteration.")
-        log.info("|-Source file: %s", job.source_file_path)
-        log.info("|-CRF search range: %d-%d", stage.crf_range_min, stage.crf_range_max)
-        log.info("|-CRF to test: %d", crf_to_test)
+                if not _is_crf_prediction_valid(job, crf_to_test):
+                    job.encoder_data.encoding_stage = EncodingStage(
+                        stage_number_from_1=-3,
+                        stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
+                        crf_range_min=stage.crf_range_min,
+                        crf_range_max=stage.crf_range_max,
+                        last_vmaf=stage.last_vmaf,
+                        last_crf=stage.last_crf
+                    )
+                    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                    break
 
-        iteration = _encode_iteration(job_context=job, crf=crf_to_test)
-        current_vmaf = iteration.execution_data.source_to_encoded_vmaf_percent
+                log.info("Starting iteration.")
+                log.info("|-Source file: %s", job.source_file_path)
+                log.info("|-CRF search range: %d-%d", stage.crf_range_min, stage.crf_range_max)
+                log.info("|-CRF to test: %d", crf_to_test)
 
-        iteration_end_time = time.perf_counter()
-        iteration_duration_seconds = iteration_end_time - iteration_start_time
-        iteration.execution_data.iteration_time_seconds = iteration_duration_seconds
+                iteration = _encode_iteration(job_context=job, crf=crf_to_test)
+                current_vmaf = iteration.execution_data.source_to_encoded_vmaf_percent
 
-        if vmaf_target_min <= current_vmaf <= vmaf_target_max:
-            log.info("CRF search successful. Ending search.")
-            log.info(f"|-Best CRF: {crf_to_test}")
-            log.info(f"|-VMAF: {current_vmaf}%")
+                iteration_end_time = time.perf_counter()
+                iteration_duration_seconds = iteration_end_time - iteration_start_time
+                iteration.execution_data.iteration_time_seconds = iteration_duration_seconds
 
-            job.encoder_data.encoding_stage = EncodingStage(
-                stage_number_from_1=4,
-                stage_name=EncodingStageNamesEnum.CRF_FOUND,
-                crf_range_min=crf_to_test,
-                crf_range_max=crf_to_test,
-                last_vmaf=current_vmaf,
-                last_crf=crf_to_test
-            )
-            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
-            break
+                if vmaf_target_min <= current_vmaf <= vmaf_target_max:
+                    log.info("CRF search successful. Ending search.")
+                    log.info(f"|-Best CRF: {crf_to_test}")
+                    log.info(f"|-VMAF: {current_vmaf}%")
 
-        if not _is_encoding_efficient(job, current_vmaf, crf_to_test):
-            best_iteration = min(
-                job.encoder_data.iterations,
-                key=lambda i: abs(i.execution_data.source_to_encoded_vmaf_percent - app_config.vmaf_min)
-            )
+                    job.encoder_data.encoding_stage = EncodingStage(
+                        stage_number_from_1=4,
+                        stage_name=EncodingStageNamesEnum.CRF_FOUND,
+                        crf_range_min=crf_to_test,
+                        crf_range_max=crf_to_test,
+                        last_vmaf=current_vmaf,
+                        last_crf=crf_to_test
+                    )
+                    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                    break
 
-            job.encoder_data.encoding_stage = EncodingStage(
-                stage_number_from_1=-2,
-                stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
-                crf_range_min=stage.crf_range_min,
-                crf_range_max=stage.crf_range_max,
-                last_vmaf=best_iteration.execution_data.source_to_encoded_vmaf_percent,
-                last_crf=best_iteration.encoder_settings.crf
-            )
-            json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
-            break
+                if not _is_encoding_efficient(job, current_vmaf, crf_to_test):
+                    best_iteration = min(
+                        job.encoder_data.iterations,
+                        key=lambda i: abs(i.execution_data.source_to_encoded_vmaf_percent - app_config.vmaf_min)
+                    )
 
-        if current_vmaf > vmaf_target_max:
-            # Quality too high, need more compression -> increase CRF
-            log.info(f"VMAF {current_vmaf}% is above target max {vmaf_target_max}%, increasing CRF.")
-            stage.crf_range_min = crf_to_test + 1
-        else:
-            # Quality too low, need less compression -> decrease CRF
-            log.info(f"VMAF {current_vmaf}% is below target min {vmaf_target_min}%, decreasing CRF.")
-            stage.crf_range_max = crf_to_test - 1
+                    job.encoder_data.encoding_stage = EncodingStage(
+                        stage_number_from_1=-2,
+                        stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
+                        crf_range_min=stage.crf_range_min,
+                        crf_range_max=stage.crf_range_max,
+                        last_vmaf=best_iteration.execution_data.source_to_encoded_vmaf_percent,
+                        last_crf=best_iteration.encoder_settings.crf
+                    )
+                    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                    break
 
-        job.encoder_data.encoding_stage = EncodingStage(
-            stage_number_from_1=3,
-            stage_name=EncodingStageNamesEnum.SEARCHING_CRF,
-            crf_range_min=stage.crf_range_min,
-            crf_range_max=stage.crf_range_max,
-            last_vmaf=current_vmaf,
-            last_crf=crf_to_test
-        )
-        json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                if current_vmaf > vmaf_target_max:
+                    # Quality too high, need more compression -> increase CRF
+                    log.info(f"VMAF {current_vmaf}% is above target max {vmaf_target_max}%, increasing CRF.")
+                    stage.crf_range_min = crf_to_test + 1
+                else:
+                    # Quality too low, need less compression -> decrease CRF
+                    log.info(f"VMAF {current_vmaf}% is below target min {vmaf_target_min}%, decreasing CRF.")
+                    stage.crf_range_max = crf_to_test - 1
 
-    log.info(f"Encoder: completed {job.source_file_path}")
-    return job
+                job.encoder_data.encoding_stage = EncodingStage(
+                    stage_number_from_1=3,
+                    stage_name=EncodingStageNamesEnum.SEARCHING_CRF,
+                    crf_range_min=stage.crf_range_min,
+                    crf_range_max=stage.crf_range_max,
+                    last_vmaf=current_vmaf,
+                    last_crf=crf_to_test
+                )
+                json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+
+            log.info(f"Encoder: completed {job.source_file_path}")
+    except TimeoutException as e:
+        log.error(f"Video is already being processed: {e}")
 
 
 def _is_encoding_efficient(job: EncoderJobContext, current_vmaf: float, crf_to_test: int) -> bool:
@@ -367,6 +373,7 @@ def _format_duration(seconds: float) -> str:
         parts.append(f"{s}s")
 
     return " ".join(parts)
+
 
 def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_file_path: Path) -> EncoderJobContext:
     input_file_path = job_context.source_file_path

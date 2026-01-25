@@ -14,8 +14,9 @@ from app.model.encoding_stage import EncodingStageNamesEnum, EncodingStage
 from app.model.execution_data import ExecutionData
 from app.model.file_attributes import FileAttributes
 from app.model.iteration import Iteration
-from app.vmaf_comparator import calculate_vmaf
 from app.model.video_embedded_metadata import VideoEmbeddedMetadata
+from app.vmaf_comparator import calculate_vmaf
+from locking import LockMode
 
 log = logging.getLogger(__name__)
 
@@ -190,8 +191,7 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
     log.info("|-Output file: %s", output_file_path)
     log.info("|-Using threads: %d", threads_count)
 
-    if file_utils.check_file_exists(output_file_path):
-        file_utils.delete_file(output_file_path)
+    file_utils.delete_file(output_file_path)
 
     encoding_command = _compose_encoding_command(job_context=job_context,
                                                  crf=crf,
@@ -460,49 +460,49 @@ class EncodingError(Exception):
 
 
 def _write_embedded_metadata(output_file_path: Path, metadata: VideoEmbeddedMetadata):
-    temp_file = output_file_path.with_suffix(".tmp" + output_file_path.suffix)
-    json_str = metadata.model_dump_json()
+    with LockManager.acquire_file_operation_lock(output_file_path, LockMode.EXCLUSIVE):
+        temp_file = output_file_path.with_suffix(".tmp" + output_file_path.suffix)
+        json_str = metadata.model_dump_json()
 
-    cmd = [
-        'ffmpeg',
-        '-i', str(output_file_path),
-        '-metadata', f'comment=encoder_metadata:{json_str}',
-        '-c', 'copy',
-        '-map_metadata', '0',
-        '-movflags', '+faststart',
-        str(temp_file),
-        '-loglevel', 'error',
-        '-y'
-    ]
+        cmd = [
+            'ffmpeg',
+            '-i', str(output_file_path),
+            '-metadata', f'comment=encoder_metadata:{json_str}',
+            '-c', 'copy',
+            '-map_metadata', '0',
+            '-movflags', '+faststart',
+            str(temp_file),
+            '-loglevel', 'error',
+            '-y'
+        ]
 
-    backup_file = None
-    try:
-        subprocess.run(cmd, check=True, capture_output=True)
+        backup_file = None
+        try:
+            subprocess.run(cmd, check=True, capture_output=True)
 
-        backup_file = output_file_path.with_suffix(".old")
+            backup_file = output_file_path.with_suffix(".old")
 
-        if backup_file.exists():
-            backup_file.unlink()
+            file_utils.delete_file(backup_file)
 
-        output_file_path.rename(backup_file)
-        temp_file.rename(output_file_path)
-        backup_file.unlink()
+            output_file_path.rename(backup_file)
+            temp_file.rename(output_file_path)
+            file_utils.delete_file(backup_file)
 
-        log.info(f"Wrote metadata for {output_file_path}")
-    except KeyboardInterrupt as e:
-        log.warning("Metadata writing interrupted! Cleaning up temp files.")
-        _cleanup_metadata(temp_file, backup_file, output_file_path)
-        raise
-    except Exception as e:
-        log.error(f"Error writing embedded metadata to {output_file_path}: {e}")
-        _cleanup_metadata(temp_file, backup_file, output_file_path)
+            log.info(f"Wrote metadata for {output_file_path}")
+        except KeyboardInterrupt as e:
+            log.warning("Metadata writing interrupted! Cleaning up temp files.")
+            _cleanup_metadata(temp_file, backup_file, output_file_path)
+            raise
+        except Exception as e:
+            log.error(f"Error writing embedded metadata to {output_file_path}: {e}")
+            _cleanup_metadata(temp_file, backup_file, output_file_path)
 
 
 def _cleanup_metadata(temp_file: Path, backup_file: Path | None, original_file: Path):
-    if temp_file and temp_file.exists():
-        temp_file.unlink()
-    if backup_file and backup_file.exists():
-        if not original_file.exists():
+    if temp_file:
+        file_utils.delete_file(temp_file)
+    if backup_file and file_utils.check_file_exists(backup_file):
+        if not file_utils.check_file_exists(original_file):
             backup_file.rename(original_file)
         else:
-            backup_file.unlink()
+            file_utils.delete_file(backup_file)

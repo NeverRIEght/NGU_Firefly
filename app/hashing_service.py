@@ -1,5 +1,7 @@
 import logging
 
+from locking import LockManager, LockMode
+
 log = logging.getLogger(__name__)
 
 import hashlib
@@ -9,29 +11,30 @@ CHUNK_SIZE = 65536
 
 
 def calculate_sha256_hash(file_path: Path) -> str:
-    if not file_path.is_file():
-        log.error(f"Source file not found at {file_path.name}")
-        raise FileNotFoundError(f"Source file not found at {file_path.resolve()}")
+    with LockManager.acquire_file_operation_lock(file_path, LockMode.EXCLUSIVE):
+        if not file_path.is_file():
+            log.error(f"Source file not found at {file_path.name}")
+            raise FileNotFoundError(f"Source file not found at {file_path.resolve()}")
 
-    log.debug(f"Calculating SHA256 for the file: {file_path.name}")
+        log.debug(f"Calculating SHA256 for the file: {file_path.name}")
 
-    sha256_hash = hashlib.sha256()
+        sha256_hash = hashlib.sha256()
 
-    try:
-        with open(file_path, "rb") as f:
+        try:
+            with open(file_path, "rb") as f:
 
-            while True:
-                chunk = f.read(CHUNK_SIZE)
-                if not chunk:
-                    break
+                while True:
+                    chunk = f.read(CHUNK_SIZE)
+                    if not chunk:
+                        break
 
-                sha256_hash.update(chunk)
+                    sha256_hash.update(chunk)
 
-    except IOError as e:
-        log.error(f"Error while reading file: {file_path.name}: {e}")
-        raise RuntimeError(f"Could not read file for hashing: {e}")
+        except IOError as e:
+            log.error(f"Error while reading file: {file_path.name}: {e}")
+            raise RuntimeError(f"Could not read file for hashing: {e}")
 
-    final_hash = sha256_hash.hexdigest()
-    log.debug(f"SHA256 calculated. Hash: {final_hash[:10]}...")
+        final_hash = sha256_hash.hexdigest()
+        log.debug(f"SHA256 calculated. Hash: {final_hash[:10]}...")
 
-    return final_hash
+        return final_hash

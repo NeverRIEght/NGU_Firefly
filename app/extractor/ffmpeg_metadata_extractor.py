@@ -2,6 +2,8 @@ import json
 import logging
 from typing import Set
 
+from locking import LockManager, LockMode
+
 log = logging.getLogger(__name__)
 
 from pathlib import Path
@@ -12,35 +14,36 @@ from app.model.ffmpeg_metadata import HdrType
 
 
 def extract(path_to_file: Path) -> FfmpegMetadata:
-    if not path_to_file.is_file():
-        log.error(f"File not found: {path_to_file}")
-        raise FileNotFoundError(f"File not found: {path_to_file}")
+    with LockManager.acquire_file_operation_lock(path_to_file, LockMode.EXCLUSIVE):
+        if not path_to_file.is_file():
+            log.error(f"File not found: {path_to_file}")
+            raise FileNotFoundError(f"File not found: {path_to_file}")
 
-    cmd = [
-        'ffprobe',
-        '-v', 'error',
-        '-select_streams', 'v',
-        '-show_entries',
-        'stream=width,height,codec_name,r_frame_rate,avg_frame_rate,tags,bit_rate,profile,'
-        + 'pix_fmt,chroma_location,color_primaries,color_transfer,color_space,level,side_data_list'
-        + ':format=size,duration,bit_rate,nb_frames',
-        '-of', 'json',
-        str(path_to_file),
-    ]
+        cmd = [
+            'ffprobe',
+            '-v', 'error',
+            '-select_streams', 'v',
+            '-show_entries',
+            'stream=width,height,codec_name,r_frame_rate,avg_frame_rate,tags,bit_rate,profile,'
+            + 'pix_fmt,chroma_location,color_primaries,color_transfer,color_space,level,side_data_list'
+            + ':format=size,duration,bit_rate,nb_frames',
+            '-of', 'json',
+            str(path_to_file),
+        ]
 
-    log.debug(f"Executing ffprobe for {path_to_file}")
+        log.debug(f"Executing ffprobe for {path_to_file}")
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        ffprobe_output = json.loads(result.stdout)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            ffprobe_output = json.loads(result.stdout)
 
-    except subprocess.CalledProcessError as e:
-        log.error(f"ffprobe execution failed: {e.stderr}")
-        raise RuntimeError(f"Could not run ffprobe on {path_to_file}") from e
-    except FileNotFoundError:
-        raise RuntimeError("ffprobe is not found. Please ensure it is installed and in your PATH.")
-    except json.JSONDecodeError:
-        raise RuntimeError("ffprobe returned unparseable JSON.")
+        except subprocess.CalledProcessError as e:
+            log.error(f"ffprobe execution failed: {e.stderr}")
+            raise RuntimeError(f"Could not run ffprobe on {path_to_file}") from e
+        except FileNotFoundError:
+            raise RuntimeError("ffprobe is not found. Please ensure it is installed and in your PATH.")
+        except json.JSONDecodeError:
+            raise RuntimeError("ffprobe returned unparseable JSON.")
 
     streams = ffprobe_output.get('streams', [])
     video_streams = [s for s in streams if s.get('codec_type') == 'video']

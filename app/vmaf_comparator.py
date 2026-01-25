@@ -2,7 +2,8 @@ import logging
 import os
 import time
 
-from app.extractor import environment_extractor
+import file_utils
+from locking import LockManager, LockMode
 
 log = logging.getLogger(__name__)
 
@@ -32,76 +33,77 @@ def calculate_vmaf(
     - ffmpeg built with libvmaf
     """
 
-    if not source_video_path.is_file():
-        raise FileNotFoundError(f"Reference file not found: {source_video_path}")
-    if not encoded_video_path.is_file():
-        raise FileNotFoundError(f"Distorted file not found: {encoded_video_path}")
+    with LockManager.acquire_file_operation_lock(source_video_path, LockMode.EXCLUSIVE):
+        with LockManager.acquire_file_operation_lock(encoded_video_path, LockMode.EXCLUSIVE):
+            if not source_video_path.is_file():
+                raise FileNotFoundError(f"Reference file not found: {source_video_path}")
+            if not encoded_video_path.is_file():
+                raise FileNotFoundError(f"Distorted file not found: {encoded_video_path}")
 
-    model_name = _get_optimal_model_name(
-        width=source_video_attributes.width_px,
-        height=source_video_attributes.height_px
-    )
+            model_name = _get_optimal_model_name(
+                width=source_video_attributes.width_px,
+                height=source_video_attributes.height_px
+            )
 
-    model_path = get_vmaf_model_path(model_name)
+            model_path = get_vmaf_model_path(model_name)
 
-    log_filename = f"vmaf_log_{int(time.time())}.json"
+            log_filename = f"vmaf_log_{int(time.time())}.json"
+            with LockManager.acquire_file_operation_lock(Path(log_filename), LockMode.EXCLUSIVE):
+                old_cwd = os.getcwd()
+                os.chdir(model_path.parent)
 
-    old_cwd = os.getcwd()
-    os.chdir(model_path.parent)
+                # We explicitly normalize EVERYTHING to:
+                # - yuv420p
+                # - bt709
+                # - progressive
+                # - same resolution & fps (taken from reference)
+                #
+                # This avoids:
+                # - colorspace mismatches
+                # - container metadata lies
+                # - VMAF undefined behavior
 
-    # We explicitly normalize EVERYTHING to:
-    # - yuv420p
-    # - bt709
-    # - progressive
-    # - same resolution & fps (taken from reference)
-    #
-    # This avoids:
-    # - colorspace mismatches
-    # - container metadata lies
-    # - VMAF undefined behavior
+                log.info("Using %d threads for VMAF calculation.", cpu_threads_count)
 
-    log.info("Using %d threads for VMAF calculation.", cpu_threads_count)
+                try:
+                    model_param = model_path.name
+                    log_param = log_filename
 
-    try:
-        model_param = model_path.name
-        log_param = log_filename
+                    vmaf_filter = (
+                        f"[1:v][0:v]scale2ref=flags=bicubic[dist][ref];"
+                        f"[dist]format=yuv420p[dist_f];"
+                        f"[ref]format=yuv420p[ref_f];"
+                        f"[dist_f][ref_f]libvmaf=model='path={model_param}:n_threads={cpu_threads_count}':"
+                        f"log_path='{log_param}':log_fmt=json"
+                    )
 
-        vmaf_filter = (
-            f"[1:v][0:v]scale2ref=flags=bicubic[dist][ref];"
-            f"[dist]format=yuv420p[dist_f];"
-            f"[ref]format=yuv420p[ref_f];"
-            f"[dist_f][ref_f]libvmaf=model='path={model_param}:n_threads={cpu_threads_count}':"
-            f"log_path='{log_param}':log_fmt=json"
-        )
+                    cmd = [
+                        "ffmpeg",
+                        "-hide_banner",
+                        "-loglevel", "error",
 
-        cmd = [
-            "ffmpeg",
-            "-hide_banner",
-            "-loglevel", "error",
+                        "-i", str(source_video_path),
+                        "-i", str(encoded_video_path),
 
-            "-i", str(source_video_path),
-            "-i", str(encoded_video_path),
+                        "-lavfi", vmaf_filter,
+                        "-f", "null",
+                        "-"
+                    ]
 
-            "-lavfi", vmaf_filter,
-            "-f", "null",
-            "-"
-        ]
+                    log.debug(f"Running VMAF (CWD: {os.getcwd()}): {' '.join(cmd)}")
+                    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
 
-        log.debug(f"Running VMAF (CWD: {os.getcwd()}): {' '.join(cmd)}")
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                    if result.returncode != 0:
+                        raise RuntimeError(f"FFmpeg failed with code {result.returncode}. Stderr: {result.stderr}")
 
-        if result.returncode != 0:
-            raise RuntimeError(f"FFmpeg failed with code {result.returncode}. Stderr: {result.stderr}")
+                    with open(log_param, 'r') as f:
+                        json_data = json.load(f)
+                finally:
+                    file_utils.delete_file(Path(log_filename))
 
-        with open(log_param, 'r') as f:
-            json_data = json.load(f)
-    finally:
-        if os.path.exists(log_filename):
-            os.remove(log_filename)
+                os.chdir(old_cwd)
 
-        os.chdir(old_cwd)
-
-    return float(json_data["pooled_metrics"]["vmaf"]["mean"])
+                return float(json_data["pooled_metrics"]["vmaf"]["mean"])
 
 
 def _get_optimal_model_name(width: int, height: int) -> str:

@@ -17,8 +17,8 @@ class LockManager:
 
     @staticmethod
     def acquire_application_lock(
-        output_dir: Path,
-        timeout: Optional[float] = None
+            output_dir: Path,
+            timeout: Optional[float] = None
     ) -> ContextManager[ManagedFileLock]:
         """
         Acquire application-wide lock to prevent multiple instances.
@@ -36,6 +36,10 @@ class LockManager:
                 pass
         """
         timeout = timeout or LockConfig.DEFAULT_TIMEOUT
+
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
+
         lock_path = output_dir / LockConfig.APPLICATION_LOCK_NAME
 
         log.debug(f"Acquiring application lock at {lock_path}")
@@ -47,9 +51,9 @@ class LockManager:
 
     @staticmethod
     def acquire_job_lock(
-        source_video_path: Path,
-        output_dir: Path,
-        timeout: Optional[float] = None
+            source_video_path: Path,
+            output_dir: Path,
+            timeout: Optional[float] = None
     ) -> ContextManager[ManagedFileLock]:
         """
         Acquire job-level lock.
@@ -83,9 +87,9 @@ class LockManager:
 
     @staticmethod
     def acquire_metadata_lock(
-        metadata_file_path: Path,
-        lock_mode: LockMode = LockMode.EXCLUSIVE,
-        timeout: Optional[float] = None
+            metadata_file_path: Path,
+            lock_mode: LockMode = LockMode.EXCLUSIVE,
+            timeout: Optional[float] = None
     ) -> ContextManager[ManagedFileLock]:
         """
         Acquire lock for metadata file access.
@@ -122,9 +126,9 @@ class LockManager:
 
     @staticmethod
     def acquire_file_operation_lock(
-        file_path: Path,
-        lock_mode: LockMode = LockMode.EXCLUSIVE,
-        timeout: Optional[float] = None
+            file_path: Path,
+            lock_mode: LockMode = LockMode.EXCLUSIVE,
+            timeout: Optional[float] = None
     ) -> ContextManager[ManagedFileLock]:
         """
         Acquire lock for general file operations (copy, move, delete).
@@ -154,10 +158,10 @@ class LockManager:
 
     @staticmethod
     def acquire_segment_lock(
-        source_video_path: Path,
-        segment_index: int,
-        output_dir: Path,
-        timeout: Optional[float] = None
+            source_video_path: Path,
+            segment_index: int,
+            output_dir: Path,
+            timeout: Optional[float] = None
     ) -> ContextManager[ManagedFileLock]:
         """
         Acquire lock for a specific video segment.
@@ -192,4 +196,3 @@ class LockManager:
             lock_mode=LockMode.EXCLUSIVE,
             timeout=timeout
         )
-

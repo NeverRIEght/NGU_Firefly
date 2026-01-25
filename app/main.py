@@ -55,11 +55,8 @@ def main():
     log.info("Current datetime: %s", datetime.now(timezone.utc))
     log.info("Starting session...")
 
-    output_dir = Path(app_config.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     try:
-        with LockManager.acquire_application_lock(output_dir):
+        with LockManager.acquire_application_lock(Path(app_config.output_dir)):
             jobs_list = job_composer.compose_jobs()
             processed_jobs_count = 0
 

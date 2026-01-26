@@ -324,12 +324,19 @@ def _compose_encoding_command(job_context: EncoderJobContext,
     else:
         log.warning("Source video is missing color metadata, encoding without explicit color settings.")
 
+    x265_params = [
+        f'crf={crf}',
+        f'pools={threads_count}',
+        'ssim-rd=1',  # better results for VMAF evaluation
+        'aq-mode=3',  # better compression for complex scenes
+    ]
+
     command = [
         'ffmpeg',
         '-i', str(job_context.source_file_path),
 
         '-c:v', 'libx265',
-        '-x265-params', f'crf={crf}:pools={threads_count}',
+        '-x265-params', ':'.join(x265_params),
         '-preset', app_config.encode_preset,
 
         '-fps_mode', 'passthrough',

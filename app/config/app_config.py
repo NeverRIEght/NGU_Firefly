@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 class AppConfig(BaseModel):
     app_name: str = Field("NGU_Firefly", description="The name of the application")
-    version: str = Field("2.5.0", description="The version of the application")
+    version: str = Field("3.0.0", description="The version of the application")
     input_dir: str = Field(..., description="Directory with initial videos of mp4 format. Will be scanned recursively without limitation of depth.")
     output_dir: str = Field(..., description="Directory where processed videos will be saved.")
     randomize_threads_count: bool = Field(False, description="Randomize the number of CPU threads used for encoding and VMAF calculation among valid options.")

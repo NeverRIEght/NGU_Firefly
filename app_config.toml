@@ -3,11 +3,11 @@
 [params]
 # Directory with initial videos of mp4 format. Will be scanned recursively without limitation of depth.
 # Value: path to existing directory.
-input_dir = "E:/userdata/encode/full_mp4s/input"
+input_dir = "path/to/your/input_directory"
 
 # Directory where processed videos will be saved.
 # Value: path to existing directory.
-output_dir = "E:/userdata/encode/full_mp4s/output"
+output_dir = "path/to/your/output_directory"
 
 # Random CPU threads mode. Used to capture more diverse performance results.
 # Will use a random number of CPU threads between 1 and actual number of CPU cores.

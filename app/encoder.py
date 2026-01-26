@@ -237,7 +237,7 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
         video_attributes=video_attributes_extractor.extract(output_file_path),
         encoder_settings=EncoderSettings(
             encoder="libx265",
-            preset=app_config.encode_preset,
+            preset=app_config.encoder_preset,
             crf=crf,
             cpu_threads_to_use=threads_count
         ),
@@ -291,7 +291,7 @@ def _predict_next_crf(job: EncoderJobContext) -> int:
 def _generate_output_file_path(input_file_path: Path, crf: int) -> Path:
     app_config = ConfigManager.get_config()
 
-    preset = app_config.encode_preset
+    preset = app_config.encoder_preset
     output_folder_path = Path(app_config.output_dir)
 
     output_filename = (
@@ -337,7 +337,7 @@ def _compose_encoding_command(job_context: EncoderJobContext,
 
         '-c:v', 'libx265',
         '-x265-params', ':'.join(x265_params),
-        '-preset', app_config.encode_preset,
+        '-preset', app_config.encoder_preset,
 
         '-fps_mode', 'passthrough',
 

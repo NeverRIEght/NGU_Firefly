@@ -2,6 +2,7 @@ import logging
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+
 from filelock import Timeout as TimeoutException
 
 import job_validator
@@ -51,7 +52,7 @@ log.addHandler(console_handler)
 def main():
     app_config = ConfigManager.get_config()
 
-    log.info("Video Encoder v.%s", app_config.version)
+    log.info("%s v.%s", app_config.app_name, app_config.app_version)
     log.info("Current datetime: %s", datetime.now(timezone.utc))
     log.info("Starting session...")
 

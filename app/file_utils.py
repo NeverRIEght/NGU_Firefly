@@ -63,6 +63,13 @@ def check_file_exists(file_path: Path) -> bool:
     return file_path.is_file()
 
 
+def check_directory_exists(dir_path: Path) -> bool:
+    if dir_path is None:
+        log.error("check_directory_exists: dir_path parameter cannot be None")
+        raise ValueError("check_directory_exists: dir_path parameter cannot be None")
+    return dir_path.is_dir()
+
+
 def delete_file(file_path: Path) -> bool:
     if file_path is None:
         log.error("delete_file: file_path parameter cannot be None")

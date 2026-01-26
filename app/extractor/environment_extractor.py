@@ -22,7 +22,10 @@ def extract() -> Environment:
 def get_available_cpu_threads() -> int:
     app_config = ConfigManager.get_config()
     if not app_config.randomize_threads_count:
-        return app_config.threads_count
+        if app_config.threads_count == 0:
+            return _extract_cpu_threads()
+        else:
+            return app_config.threads_count
 
     actual_threads = _extract_cpu_threads()
 

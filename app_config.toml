@@ -1,36 +1,39 @@
+# NGU Firefly Configuration
+
+[params]
 # Directory with initial videos of mp4 format. Will be scanned recursively without limitation of depth.
 # Value: path to existing directory.
-INPUT_DIR=
+input_dir = "E:/userdata/encode/full_mp4s/input"
 
 # Directory where processed videos will be saved.
 # Value: path to existing directory.
-OUTPUT_DIR=
+output_dir = "E:/userdata/encode/full_mp4s/output"
 
 # Random CPU threads mode. Used to capture more diverse performance results.
 # Will use a random number of CPU threads between 1 and actual number of CPU cores.
 # The presence of each number of threads in the range is not guaranteed.
 # Value: true/false
-RANDOMIZE_THREADS_COUNT=
+randomize_threads_count = false
 
 # Number of CPU threads to use. The multithreaded mode is used for both encoding and VMAF calculation.
 # Value: integer from 1 to number of CPU cores.
 # If the value is greater than number of CPU cores, then actual number of CPU cores will be used.
 # This value is ignored if RANDOMIZE_THREADS_COUNT=true.
-THREADS_COUNT=
+threads_count = 0
 
-# CRF values for binary search
+# CRF values for search
 # Value: integer from 0 to 51, where lower means better quality and bigger file size.
-CRF_MIN=
-CRF_MAX=
-INITIAL_CRF=
+crf_min = 12
+crf_max = 36
+initial_crf = 26
 
-# VMAF tresholds for acceptable quality
-VMAF_MIN=
-VMAF_MAX=
+# VMAF tresholds for acceptable quality.
+vmaf_min = 96.0
+vmaf_max = 97.0
 
 # Efficiency treshold. Stops encoding if vmaf_delta / crf_delta < EFFICIENCY_THRESHOLD
-EFFICIENCY_THRESHOLD=
+efficiency_threshold = 0.28
 
 # Encode preset for libx265 encoder
 # Values: ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placebo
-ENCODE_PRESET=
+encoder_preset = "veryslow"

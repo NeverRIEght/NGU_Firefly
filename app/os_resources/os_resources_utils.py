@@ -23,6 +23,11 @@ def set_process_priority(process, priority_str):
     p_str = priority_str.lower()
 
     try:
+        if hasattr(process, 'pid') and not isinstance(process, psutil.Process):
+            target_process = psutil.Process(process.pid)
+        else:
+            target_process = process
+
         if psutil.WINDOWS:
             priority_map = {
                 "idle": psutil.IDLE_PRIORITY_CLASS,
@@ -39,7 +44,7 @@ def set_process_priority(process, priority_str):
             else:
                 val = priority_map[p_str]
 
-            process.nice(val)
+            target_process.nice(val)
 
         else:
             priority_map = {
@@ -57,17 +62,19 @@ def set_process_priority(process, priority_str):
                 target_nice = 0
 
             try:
-                process.nice(target_nice)
+                target_process.nice(target_nice)
             except psutil.AccessDenied:
                 if target_nice < 0:
                     log.warning(f"Sudo/Root required for '{p_str}' priority. Falling back to 'normal' (nice 0)")
-                    process.nice(0)
+                    target_process.nice(0)
                 else:
                     raise
 
         log.debug(f"Set process PID {process.pid} priority to {p_str}")
 
     except psutil.NoSuchProcess:
-        log.warning(f"Failed to set priority: Process {process.pid} already terminated")
+        pid = getattr(process, 'pid', 'unknown')
+        log.warning(f"Failed to set priority: Process {pid} already terminated")
     except Exception as e:
-        log.error(f"Failed to set priority for PID {process.pid}: {e}")
+        pid = getattr(process, 'pid', 'unknown')
+        log.error(f"Failed to set priority for PID {pid}: {e}")

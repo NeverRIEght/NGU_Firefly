@@ -8,6 +8,7 @@ from filelock import Timeout as TimeoutException
 import job_validator
 from app import encoder, file_utils, hashing_service, job_composer, json_serializer
 from app.config.app_config import ConfigManager
+from app.config.config_validator import ConfigValidator
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
 from app.locking import LockManager
 from app.model.encoder_job_context import EncoderJobContext
@@ -47,6 +48,7 @@ log.addHandler(console_handler)
 
 def main():
     app_config = ConfigManager.get_config()
+    ConfigValidator.validate(app_config)
 
     log.info("%s v.%s", app_config.app_name, app_config.app_version)
     log.info("Current datetime: %s", datetime.now(timezone.utc))

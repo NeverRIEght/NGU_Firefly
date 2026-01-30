@@ -162,6 +162,7 @@ def _initialize_encoder_job(source_file_path: Path, json_file_path: Path) -> Enc
     )
 
     encoder_data = EncoderDataJson(
+        schema_version=app_config.schema_version,
         source_video=source_video,
         encoding_stage=stage
     )

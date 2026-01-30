@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 
 from app.config.app_config import ConfigManager
-from app.model.iteration import Iteration
 from app.model.encoder_job_context import EncoderJobContext
+from model.json.iteration import Iteration
 
 
 class VideoEmbeddedMetadata(BaseModel):

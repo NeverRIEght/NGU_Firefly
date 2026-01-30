@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from app.locking import LockManager, LockMode
-from app.model.encoder_data_json import EncoderDataJson
+from model.json.encoder_data_json import EncoderDataJson
 
 log = logging.getLogger(__name__)
 

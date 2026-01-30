@@ -1,11 +1,11 @@
 import logging
 
 import file_utils
-from app.model.encoder_data_json import EncoderDataJson
 from app.model.encoder_job_context import EncoderJobContext
-from app.model.encoding_stage import EncodingStage, EncodingStageNamesEnum
-from app.model.file_attributes import FileAttributes
-from app.model.source_video import SourceVideo
+from model.json.encoder_data_json import EncoderDataJson
+from model.json.encoding_stage import EncodingStage, EncodingStageNamesEnum
+from model.json.file_attributes import FileAttributes
+from model.json.source_video import SourceVideo
 
 log = logging.getLogger(__name__)
 

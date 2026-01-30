@@ -9,17 +9,17 @@ from app.config.app_config import ConfigManager
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor, environment_extractor
 from app.locking import LockManager
 from app.model.encoder_job_context import EncoderJobContext
-from app.model.encoder_settings import EncoderSettings
-from app.model.encoding_stage import EncodingStageNamesEnum, EncodingStage
-from app.model.execution_data import ExecutionData
-from app.model.file_attributes import FileAttributes
-from app.model.iteration import Iteration
-from app.model.video_embedded_metadata import VideoEmbeddedMetadata
 from app.os_resources import os_resources_utils
 from app.os_resources.exceptions import LowResourcesException
 from app.os_resources.os_resources_utils import offload_if_memory_low
 from app.vmaf_comparator import calculate_vmaf
 from locking import LockMode
+from model.json.encoder_settings import EncoderSettings
+from model.json.encoding_stage import EncodingStageNamesEnum, EncodingStage
+from model.json.execution_data import ExecutionData
+from model.json.file_attributes import FileAttributes
+from model.json.iteration import Iteration
+from model.json.video_embedded_metadata import VideoEmbeddedMetadata
 
 log = logging.getLogger(__name__)
 

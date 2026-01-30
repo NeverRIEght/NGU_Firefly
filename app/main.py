@@ -15,9 +15,9 @@ from app.config.app_config import ConfigManager
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
 from app.locking import LockManager
 from app.model.encoder_job_context import EncoderJobContext
-from app.model.encoding_stage import EncodingStageNamesEnum
-from app.model.file_attributes import FileAttributes
-from app.model.source_video import SourceVideo
+from model.json.encoding_stage import EncodingStageNamesEnum
+from model.json.file_attributes import FileAttributes
+from model.json.source_video import SourceVideo
 
 logs_dir = Path("../logs")
 logs_dir.mkdir(exist_ok=True)

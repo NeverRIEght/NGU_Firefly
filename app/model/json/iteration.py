@@ -2,12 +2,12 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from app.model.encoder_settings import EncoderSettings
-from app.model.environment import Environment
-from app.model.execution_data import ExecutionData
-from app.model.ffmpeg_metadata import FfmpegMetadata
-from app.model.file_attributes import FileAttributes
-from app.model.video_attributes import VideoAttributes
+from model.json.encoder_settings import EncoderSettings
+from model.json.environment import Environment
+from model.json.execution_data import ExecutionData
+from model.json.ffmpeg_metadata import FfmpegMetadata
+from model.json.file_attributes import FileAttributes
+from model.json.video_attributes import VideoAttributes
 
 
 class Iteration(BaseModel):

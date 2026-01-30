@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
 
-from app.model.video_attributes import VideoAttributes
 from locking import LockManager, LockMode
+from model.json.video_attributes import VideoAttributes
 
 log = logging.getLogger(__name__)
 

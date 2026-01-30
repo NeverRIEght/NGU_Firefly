@@ -9,8 +9,8 @@ log = logging.getLogger(__name__)
 from pathlib import Path
 import subprocess
 
-from app.model.ffmpeg_metadata import FfmpegMetadata
-from app.model.ffmpeg_metadata import HdrType
+from model.json.ffmpeg_metadata import FfmpegMetadata
+from model.json.ffmpeg_metadata import HdrType
 
 
 def extract(path_to_file: Path) -> FfmpegMetadata:

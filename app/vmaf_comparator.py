@@ -15,7 +15,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from app.model.video_attributes import VideoAttributes
+from model.json.video_attributes import VideoAttributes
 
 
 def calculate_vmaf(

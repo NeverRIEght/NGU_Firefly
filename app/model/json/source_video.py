@@ -2,9 +2,9 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from app.model.ffmpeg_metadata import FfmpegMetadata
-from app.model.file_attributes import FileAttributes
-from app.model.video_attributes import VideoAttributes
+from model.json.ffmpeg_metadata import FfmpegMetadata
+from model.json.file_attributes import FileAttributes
+from model.json.video_attributes import VideoAttributes
 
 
 class SourceVideo(BaseModel):

@@ -3,6 +3,10 @@ import os
 import time
 
 import file_utils
+from app.config.app_config import ConfigManager
+from app.os_resources import os_resources_utils
+from app.os_resources.exceptions import LowResourcesException
+from app.os_resources.os_resources_utils import offload_if_memory_low
 from locking import LockManager, LockMode
 
 log = logging.getLogger(__name__)
@@ -39,6 +43,8 @@ def calculate_vmaf(
                 raise FileNotFoundError(f"Reference file not found: {source_video_path}")
             if not encoded_video_path.is_file():
                 raise FileNotFoundError(f"Distorted file not found: {encoded_video_path}")
+
+            app_config = ConfigManager.get_config()
 
             model_name = _get_optimal_model_name(
                 width=source_video_attributes.width_px,
@@ -91,14 +97,35 @@ def calculate_vmaf(
                     ]
 
                     log.debug(f"Running VMAF (CWD: {os.getcwd()}): {' '.join(cmd)}")
-                    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                    process = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        bufsize=1
+                    )
 
-                    if result.returncode != 0:
-                        raise RuntimeError(f"FFmpeg failed with code {result.returncode}. Stderr: {result.stderr}")
+                    if not app_config.disable_resources_monitoring:
+                        os_resources_utils.set_process_priority(process, app_config.vmaf_process_priority)
+
+                    while process.poll() is None:
+                        if not app_config.disable_resources_monitoring:
+                            offload_if_memory_low(process)
+                        time.sleep(app_config.ram_monitoring_interval_seconds)
+
+                    if process.returncode != 0:
+                        _, stderr = process.communicate()
+                        raise RuntimeError(f"VMAF FFmpeg failed: {stderr}")
 
                     with open(log_param, 'r') as f:
                         json_data = json.load(f)
+                except LowResourcesException:
+                    if process:
+                        process.kill()
+                    raise
                 finally:
+                    if process and process.poll() is None:
+                        process.kill()
                     file_utils.delete_file(Path(log_filename))
 
                 os.chdir(old_cwd)

@@ -16,10 +16,52 @@ output_dir = "path/to/your/output_directory"
 randomize_threads_count = false
 
 # Number of CPU threads to use. The multithreaded mode is used for both encoding and VMAF calculation.
-# Value: integer from 1 to number of CPU cores.
+# Value: integer from 0 to number of CPU cores.
 # If the value is greater than number of CPU cores, then actual number of CPU cores will be used.
-# This value is ignored if RANDOMIZE_THREADS_COUNT=true.
+# If the value is 0, then all available CPU cores will be used.
+# This value is ignored if randomize_threads_count=true
 threads_count = 0
+
+# Disable resources monitoring during encoding and VMAF calculation.
+# If false, then CPU and RAM usage will be monitored to stop encoding if OS resources are overused.
+# Value: true/false
+disable_resources_monitoring = false
+
+# Delay in seconds before restarting encoding after resources overuse is detected.
+# This value is ignored if disable_resources_monitoring=true
+# Value: float greater than or equal to 0.0
+# If the value is 0.0, then minimal safe delay will be used.
+low_resources_restart_delay_seconds = 20.0
+
+# Video encoder process priority in the OS.
+# Values: idle, below_normal, normal, above_normal, high, real_time
+# This value is ignored if disable_resources_monitoring=true
+encoder_process_priority = "idle"
+
+# VMAF calculation process priority in the OS.
+# Values: idle, below_normal, normal, above_normal, high, real_time
+# This value is ignored if disable_resources_monitoring=true
+vmaf_process_priority = "idle"
+
+# Delay in seconds between CPU and RAM usage checks during encoding and VMAF calculation.
+# This value is ignored if disable_resources_monitoring=true
+# Value: float greater than or equal to 0.0
+# If the value is 0.0, then minimal safe delay will be used.
+ram_monitoring_interval_seconds = 2.0
+
+# Hard limit for RAM usage during encoding and VMAF calculation.
+# If RAM usage exceeds this limit, encoding or VMAF calculation will be stopped and restarted after a delay.
+# This value is ignored if disable_resources_monitoring=true
+# Value: float from 0.0 to 100.0 representing percentage of total RAM
+# If the value is 0.0, then default value (85%) will be used.
+ram_percent_hard_limit = 85.0
+
+# Hard limit for RAM usage during encoding and VMAF calculation.
+# If RAM usage exceeds this limit, encoding or VMAF calculation will be stopped and restarted after a delay.
+# This value is ignored if disable_resources_monitoring=true
+# Value: integer greater than or equal to 0 representing bytes of RAM
+# If the value is 0, then default value (500 MB) will be used.
+ram_hard_limit_bytes = 524288000 # 500 MB
 
 # CRF values for search
 # Value: integer from 0 to 51, where lower means better quality and bigger file size.
@@ -28,6 +70,8 @@ crf_max = 36
 initial_crf = 26
 
 # VMAF tresholds for acceptable quality.
+# The center of the acceptable quality range is targeted during encoding, anything outside the range is unacceptable.
+# Value: float from 0.0 to 100.0, where higher means better quality.
 vmaf_min = 96.0
 vmaf_max = 97.0
 

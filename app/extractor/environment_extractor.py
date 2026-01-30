@@ -16,18 +16,18 @@ def extract() -> Environment:
         ffmpeg_version=_extract_ffmpeg_version(),
         encoder_version="unknown",  # TODO: extract encoder version
         cpu_name=_extract_cpu_name(),
-        cpu_threads=_extract_cpu_threads()
+        cpu_threads=extract_cpu_threads()
     )
 
 def get_available_cpu_threads() -> int:
     app_config = ConfigManager.get_config()
     if not app_config.randomize_threads_count:
         if app_config.threads_count == 0:
-            return _extract_cpu_threads()
+            return extract_cpu_threads()
         else:
             return app_config.threads_count
 
-    actual_threads = _extract_cpu_threads()
+    actual_threads = extract_cpu_threads()
 
     possible_options = [1, 2, 4, 8, 12, 16]
     valid_options = [opt for opt in possible_options if opt <= actual_threads]
@@ -69,7 +69,7 @@ def _extract_cpu_name() -> str:
         return "unknown"
 
 
-def _extract_cpu_threads() -> int:
+def extract_cpu_threads() -> int:
     cpu_info = get_cpu_info()
     cpu_threads = cpu_info['count']
 

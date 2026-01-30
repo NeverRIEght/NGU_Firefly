@@ -15,6 +15,9 @@ from app.model.execution_data import ExecutionData
 from app.model.file_attributes import FileAttributes
 from app.model.iteration import Iteration
 from app.model.video_embedded_metadata import VideoEmbeddedMetadata
+from app.os_resources import os_resources_utils
+from app.os_resources.exceptions import LowResourcesException
+from app.os_resources.os_resources_utils import offload_if_memory_low
 from app.vmaf_comparator import calculate_vmaf
 from locking import LockMode
 
@@ -197,10 +200,23 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
                                                  crf=crf,
                                                  threads_count=threads_count,
                                                  output_file_path=output_file_path)
-    start_time = time.perf_counter()
-    _encode_libx265(job_context=job_context,
-                    command=encoding_command,
-                    output_file_path=output_file_path)
+
+    while True:
+        file_utils.delete_file(output_file_path)
+        start_time = time.perf_counter()
+
+        try:
+            _encode_libx265(job_context=job_context,
+                            command=encoding_command,
+                            output_file_path=output_file_path)
+            break  # encoding succeeded, exit the loop
+
+        except LowResourcesException:
+            log.warning("Encoding stopped due to low resources. Sleeping for %d seconds...",
+                        app_config.low_resources_restart_delay_seconds)
+            time.sleep(app_config.low_resources_restart_delay_seconds)
+            log.info("Retrying to encode iteration...")
+
     end_time = time.perf_counter()
     encoding_duration_seconds = end_time - start_time
     encoding_finished_time = datetime.now(timezone.utc)
@@ -213,18 +229,29 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
 
     source_video_attributes = job_context.encoder_data.source_video.video_attributes
 
+    cpu_threads_for_vmaf = environment_extractor.get_available_cpu_threads()
+
     log.info("Encoding finished.")
     log.info("Calculating VMAF...")
     log.info("|-Source file: %s", job_context.source_file_path)
     log.info("|-Encoded file: %s", output_file_path)
 
-    cpu_threads_for_vmaf = environment_extractor.get_available_cpu_threads()
-
     vmaf_calculation_start_time = time.perf_counter()
-    vmaf_value = calculate_vmaf(input_file_path,
-                                output_file_path,
-                                source_video_attributes,
-                                cpu_threads_for_vmaf)
+
+    while True:
+        try:
+            vmaf_value = calculate_vmaf(input_file_path,
+                                        output_file_path,
+                                        source_video_attributes,
+                                        cpu_threads_for_vmaf)
+            break  # calculation succeeded, exit the loop
+
+        except LowResourcesException:
+            log.warning("VMAF calculation stopped due to low resources. Sleeping for %d seconds...",
+                        app_config.low_resources_restart_delay_seconds)
+            time.sleep(app_config.low_resources_restart_delay_seconds)
+            log.info("Retrying to calculate VMAF...")
+
     vmaf_calculation_end_time = time.perf_counter()
     vmaf_calculation_duration_seconds = vmaf_calculation_end_time - vmaf_calculation_start_time
 
@@ -383,6 +410,7 @@ def _format_duration(seconds: float) -> str:
 
 
 def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_file_path: Path) -> EncoderJobContext:
+    app_config = ConfigManager.get_config()
     input_file_path = job_context.source_file_path
 
     total_duration = job_context.encoder_data.source_video.video_attributes.duration_seconds
@@ -401,7 +429,12 @@ def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_f
             bufsize=1
         )
 
+        if not app_config.disable_resources_monitoring:
+            os_resources_utils.set_process_priority(process, app_config.encoder_process_priority)
+
         time_re = re.compile(r"out_time_ms=(\d+)")
+
+        last_ram_check_time = 0
 
         while True:
             line = process.stderr.readline()
@@ -409,6 +442,12 @@ def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_f
                 break
 
             if line:
+                if not app_config.disable_resources_monitoring:
+                    current_time = time.perf_counter()
+                    if current_time - last_ram_check_time >= app_config.ram_monitoring_interval_seconds:
+                        offload_if_memory_low(process)
+                        last_ram_check_time = current_time
+
                 match = time_re.search(line)
                 if match:
                     # Video time processed so far (in seconds)
@@ -442,6 +481,8 @@ def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_f
             raise EncodingError("FFmpeg failed to encode the video.")
 
         return job_context
+    except LowResourcesException:
+        raise LowResourcesException("Encoding stopped due to low system resources.")
     except FileNotFoundError:
         log.error("FFmpeg not found. Please check your installation and PATH settings.")
         return job_context

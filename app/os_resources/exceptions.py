@@ -1,0 +1,2 @@
+class LowResourcesException(Exception):
+    pass

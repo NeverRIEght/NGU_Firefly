@@ -1,6 +1,6 @@
 import logging
 
-from locking import LockManager, LockMode
+from app.locking import LockManager, LockMode
 
 log = logging.getLogger(__name__)
 

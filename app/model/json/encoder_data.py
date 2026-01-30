@@ -2,9 +2,9 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from model.json.encoding_stage import EncodingStage
-from model.json.iteration import Iteration
-from model.json.source_video import SourceVideo
+from app.model.json.encoding_stage import EncodingStage
+from app.model.json.iteration import Iteration
+from app.model.json.source_video import SourceVideo
 
 
 class EncoderData(BaseModel):

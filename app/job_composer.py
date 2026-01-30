@@ -1,11 +1,12 @@
 import logging
+import sys
 
 import file_utils
 from app.model.encoder_job_context import EncoderJobContext
-from model.json.encoder_data import EncoderData
-from model.json.encoding_stage import EncodingStage, EncodingStageNamesEnum
-from model.json.file_attributes import FileAttributes
-from model.json.source_video import SourceVideo
+from app.model.json.encoder_data import EncoderData
+from app.model.json.encoding_stage import EncodingStage, EncodingStageNamesEnum
+from app.model.json.file_attributes import FileAttributes
+from app.model.json.source_video import SourceVideo
 
 log = logging.getLogger(__name__)
 
@@ -15,6 +16,17 @@ from app import json_serializer
 from app.json_serializer import load_from_json
 from app.file_utils import get_file_name_with_extension, get_file_name_without_extension, delete_file
 
+
+def update_progress(current, total, prefix=""):
+    if total <= 0:
+        return
+
+    percent = (current / total) * 100
+
+    status_line = f"\r{prefix} |{percent:.1f}% ({current}/{total})\033[K"
+
+    sys.stdout.write(status_line)
+    sys.stdout.flush()
 
 def compose_jobs() -> list[EncoderJobContext]:
     app_config = ConfigManager.get_config()

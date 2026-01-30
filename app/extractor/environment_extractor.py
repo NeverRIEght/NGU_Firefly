@@ -5,7 +5,7 @@ import subprocess
 from cpuinfo import get_cpu_info
 
 from app.config.app_config import ConfigManager
-from model.json.environment import Environment
+from app.model.json.environment import Environment
 
 
 def extract() -> Environment:

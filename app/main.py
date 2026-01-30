@@ -6,18 +6,14 @@ from pathlib import Path
 from filelock import Timeout as TimeoutException
 
 import job_validator
-from app import encoder
-from app import file_utils
-from app import hashing_service
-from app import job_composer
-from app import json_serializer
+from app import encoder, file_utils, hashing_service, job_composer, json_serializer
 from app.config.app_config import ConfigManager
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
 from app.locking import LockManager
 from app.model.encoder_job_context import EncoderJobContext
-from model.json.encoding_stage import EncodingStageNamesEnum
-from model.json.file_attributes import FileAttributes
-from model.json.source_video import SourceVideo
+from app.model.json.encoding_stage import EncodingStageNamesEnum
+from app.model.json.file_attributes import FileAttributes
+from app.model.json.source_video import SourceVideo
 
 logs_dir = Path("../logs")
 logs_dir.mkdir(exist_ok=True)

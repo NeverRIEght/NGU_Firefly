@@ -2,15 +2,15 @@ import json
 import logging
 from typing import Set
 
-from locking import LockManager, LockMode
+from app.locking import LockManager, LockMode
 
 log = logging.getLogger(__name__)
 
 from pathlib import Path
 import subprocess
 
-from model.json.ffmpeg_metadata import FfmpegMetadata
-from model.json.ffmpeg_metadata import HdrType
+from app.model.json.ffmpeg_metadata import FfmpegMetadata
+from app.model.json.ffmpeg_metadata import HdrType
 
 
 def extract(path_to_file: Path) -> FfmpegMetadata:

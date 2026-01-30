@@ -4,10 +4,10 @@ import time
 
 import file_utils
 from app.config.app_config import ConfigManager
+from app.locking import LockManager, LockMode
 from app.os_resources import os_resources_utils
 from app.os_resources.exceptions import LowResourcesException
 from app.os_resources.os_resources_utils import offload_if_memory_low
-from locking import LockManager, LockMode
 
 log = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from model.json.video_attributes import VideoAttributes
+from app.model.json.video_attributes import VideoAttributes
 
 
 def calculate_vmaf(

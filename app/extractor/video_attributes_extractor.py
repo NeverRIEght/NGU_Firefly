@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
 
-from locking import LockManager, LockMode
-from model.json.video_attributes import VideoAttributes
+from app.locking import LockManager, LockMode
+from app.model.json.video_attributes import VideoAttributes
 
 log = logging.getLogger(__name__)
 
@@ -46,12 +46,12 @@ def extract(path_to_file: Path) -> VideoAttributes:
     format_data = ffprobe_output.get('format', {})
 
     video_attributes = VideoAttributes(
-        codec=_extract_codec_name(path_to_file, stream_data),
-        width_px=_extract_width(path_to_file, stream_data),
-        height_px=_extract_height(path_to_file, stream_data),
-        duration_seconds=_get_video_duration(path_to_file),
-        fps=_extract_fps(path_to_file, stream_data),
-        average_bitrate_kilobits_per_second=_extract_bitrate_kbps(path_to_file, stream_data, format_data)
+            codec=_extract_codec_name(path_to_file, stream_data),
+            width_px=_extract_width(path_to_file, stream_data),
+            height_px=_extract_height(path_to_file, stream_data),
+            duration_seconds=_get_video_duration(path_to_file),
+            fps=_extract_fps(path_to_file, stream_data),
+            average_bitrate_kilobits_per_second=_extract_bitrate_kbps(path_to_file, stream_data, format_data)
     )
 
     return video_attributes

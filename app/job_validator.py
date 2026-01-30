@@ -1,6 +1,6 @@
 import logging
 
-from model.json.encoding_stage import EncodingStageNamesEnum
+from app.model.json.encoding_stage import EncodingStageNamesEnum
 
 log = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@ import logging
 
 import file_utils
 from app.model.encoder_job_context import EncoderJobContext
-from model.json.encoder_data_json import EncoderDataJson
+from model.json.encoder_data import EncoderData
 from model.json.encoding_stage import EncodingStage, EncodingStageNamesEnum
 from model.json.file_attributes import FileAttributes
 from model.json.source_video import SourceVideo
@@ -161,7 +161,7 @@ def _initialize_encoder_job(source_file_path: Path, json_file_path: Path) -> Enc
         file_attributes=file_attributes,
     )
 
-    encoder_data = EncoderDataJson(
+    encoder_data = EncoderData(
         schema_version=app_config.schema_version,
         source_video=source_video,
         encoding_stage=stage

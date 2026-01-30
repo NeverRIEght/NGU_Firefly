@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from model.json.encoder_data_json import EncoderDataJson
+from model.json.encoder_data import EncoderData
 
 
 class EncoderJobContext(BaseModel):
@@ -11,4 +11,4 @@ class EncoderJobContext(BaseModel):
     metadata_json_file_path: Path
     is_locked: bool = False
     is_complete: bool = False
-    encoder_data: Optional[EncoderDataJson] = None
+    encoder_data: Optional[EncoderData] = None

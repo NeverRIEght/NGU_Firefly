@@ -2,12 +2,12 @@ import logging
 from pathlib import Path
 
 from app.locking import LockManager, LockMode
-from model.json.encoder_data_json import EncoderDataJson
+from model.json.encoder_data import EncoderData
 
 log = logging.getLogger(__name__)
 
 
-def serialize_to_json(job_object: EncoderDataJson, output_path: str | Path):
+def serialize_to_json(job_object: EncoderData, output_path: str | Path):
     p = Path(output_path)
 
     try:
@@ -29,7 +29,7 @@ def serialize_to_json(job_object: EncoderDataJson, output_path: str | Path):
         raise
 
 
-def load_from_json(input_path: str | Path) -> EncoderDataJson:
+def load_from_json(input_path: str | Path) -> EncoderData:
     p = Path(input_path)
 
     if not p.is_file():
@@ -38,7 +38,7 @@ def load_from_json(input_path: str | Path) -> EncoderDataJson:
     with LockManager.acquire_metadata_lock(p, LockMode.SHARED):
         try:
             json_content = p.read_text(encoding="utf-8")
-            job_object = EncoderDataJson.model_validate_json(json_content)
+            job_object = EncoderData.model_validate_json(json_content)
 
             log.debug(f"Json loaded: {p.resolve()}")
             return job_object

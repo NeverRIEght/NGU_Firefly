@@ -1,6 +1,6 @@
 [project]
 name = "NGU_Firefly"
-version = "7.0.0"
+version = "7.0.1"
 description = ""
 authors = [
     {name = "Mihail Komarov",email = "michaelkomarov03@gmail.com"}
@@ -13,8 +13,7 @@ dependencies = [
     "numpy (==2.4.0)",
     "py-cpuinfo (==9.0.0)",
     "filelock (==3.20.3)",
-    "psutil (==7.2.2)",
-    "pylint (==4.0.4)"
+    "psutil (==7.2.2)"
 ]
 
 [dependency-groups]

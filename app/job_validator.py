@@ -6,16 +6,16 @@ log = logging.getLogger(__name__)
 
 from pathlib import Path
 
-from app.model.encoder_job_context import EncoderJobContext
+from app.model.encoder_job_context import EncoderJob
 from app.config.app_config import ConfigManager
 
 
-def validate(job: EncoderJobContext) -> bool:
+def validate(job: EncoderJob) -> bool:
     app_config = ConfigManager.get_config()
 
     source_file_path = job.source_file_path
     metadata_file_path = job.metadata_json_file_path
-    stage = job.encoder_data.encoding_stage
+    stage = job.job_data.encoding_stage
 
     if not source_file_path.exists():
         job.log_error(f"Source file does not exist: {source_file_path}")
@@ -36,7 +36,7 @@ def validate(job: EncoderJobContext) -> bool:
         return True
 
     best_iteration = None
-    for iteration in job.encoder_data.iterations:
+    for iteration in job.job_data.iterations:
         if (stage.crf_range_min == stage.crf_range_max
                 and iteration.execution_data.source_to_encoded_vmaf_percent == stage.last_vmaf):
             best_iteration = iteration

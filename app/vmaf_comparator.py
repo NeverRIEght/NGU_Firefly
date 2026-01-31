@@ -1,21 +1,19 @@
+import json
 import logging
 import os
+import subprocess
 import time
+from pathlib import Path
 
-import file_utils
+from app import file_utils
 from app.config.app_config import ConfigManager
 from app.locking import LockManager, LockMode
+from app.model.json.video_attributes import VideoAttributes
 from app.os_resources import os_resources_utils
 from app.os_resources.exceptions import LowResourcesException
 from app.os_resources.os_resources_utils import offload_if_memory_low
 
 log = logging.getLogger(__name__)
-
-import json
-import subprocess
-from pathlib import Path
-
-from app.model.json.video_attributes import VideoAttributes
 
 
 def calculate_vmaf(
@@ -47,8 +45,8 @@ def calculate_vmaf(
             app_config = ConfigManager.get_config()
 
             model_name = _get_optimal_model_name(
-                width=source_video_attributes.width_px,
-                height=source_video_attributes.height_px
+                    width=source_video_attributes.width_px,
+                    height=source_video_attributes.height_px
             )
 
             model_path = get_vmaf_model_path(model_name)
@@ -98,11 +96,11 @@ def calculate_vmaf(
 
                     log.debug(f"Running VMAF (CWD: {os.getcwd()}): {' '.join(cmd)}")
                     process = subprocess.Popen(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        bufsize=1
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            bufsize=1
                     )
 
                     if not app_config.disable_resources_monitoring:

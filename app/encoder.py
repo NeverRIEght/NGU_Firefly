@@ -7,7 +7,7 @@ from app import file_utils, json_serializer
 from app.config.app_config import ConfigManager
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor, environment_extractor
 from app.locking import LockManager, LockMode
-from app.model.encoder_job_context import EncoderJobContext
+from app.model.encoder_job_context import EncoderJob
 from app.model.json.encoder_settings import EncoderSettings
 from app.model.json.encoding_stage import EncodingStageNamesEnum, EncodingStage
 from app.model.json.execution_data import ExecutionData
@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 import numpy as np
 
 
-def encode_job(job: EncoderJobContext):
+def encode_job(job: EncoderJob):
     app_config = ConfigManager.get_config()
 
     try:
@@ -42,14 +42,14 @@ def encode_job(job: EncoderJobContext):
             vmaf_target_max = app_config.vmaf_max
 
             while True:
-                stage = job.encoder_data.encoding_stage
+                stage = job.job_data.encoding_stage
                 iteration_start_time = time.perf_counter()
 
                 if stage.crf_range_min > stage.crf_range_max:
                     log.warning(f"CRF bounds are broken. Ending search.")
                     log.warning(f"|-Stage bounds: %s-%s", stage.crf_range_min, stage.crf_range_max)
                     log.warning(f"|-Last tested CRF: %s", stage.last_crf)
-                    job.encoder_data.encoding_stage = EncodingStage(
+                    job.job_data.encoding_stage = EncodingStage(
                         stage_number_from_1=-3,
                         stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
                         crf_range_min=stage.crf_range_min,
@@ -57,13 +57,13 @@ def encode_job(job: EncoderJobContext):
                         last_vmaf=stage.last_vmaf,
                         last_crf=stage.last_crf
                     )
-                    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                    json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
                     break
 
                 crf_to_test = _predict_next_crf(job)
 
                 if not _is_crf_prediction_valid(job, crf_to_test):
-                    job.encoder_data.encoding_stage = EncodingStage(
+                    job.job_data.encoding_stage = EncodingStage(
                         stage_number_from_1=-3,
                         stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
                         crf_range_min=stage.crf_range_min,
@@ -71,7 +71,7 @@ def encode_job(job: EncoderJobContext):
                         last_vmaf=stage.last_vmaf,
                         last_crf=stage.last_crf
                     )
-                    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                    json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
                     break
 
                 log.info("Starting iteration.")
@@ -91,7 +91,7 @@ def encode_job(job: EncoderJobContext):
                     log.info(f"|-Best CRF: {crf_to_test}")
                     log.info(f"|-VMAF: {current_vmaf}%")
 
-                    job.encoder_data.encoding_stage = EncodingStage(
+                    job.job_data.encoding_stage = EncodingStage(
                         stage_number_from_1=4,
                         stage_name=EncodingStageNamesEnum.CRF_FOUND,
                         crf_range_min=crf_to_test,
@@ -99,16 +99,16 @@ def encode_job(job: EncoderJobContext):
                         last_vmaf=current_vmaf,
                         last_crf=crf_to_test
                     )
-                    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                    json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
                     break
 
                 if not _is_encoding_efficient(job, current_vmaf, crf_to_test):
                     best_iteration = min(
-                        job.encoder_data.iterations,
+                            job.job_data.iterations,
                         key=lambda i: abs(i.execution_data.source_to_encoded_vmaf_percent - app_config.vmaf_min)
                     )
 
-                    job.encoder_data.encoding_stage = EncodingStage(
+                    job.job_data.encoding_stage = EncodingStage(
                         stage_number_from_1=-2,
                         stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
                         crf_range_min=stage.crf_range_min,
@@ -116,7 +116,7 @@ def encode_job(job: EncoderJobContext):
                         last_vmaf=best_iteration.execution_data.source_to_encoded_vmaf_percent,
                         last_crf=best_iteration.encoder_settings.crf
                     )
-                    json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                    json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
                     break
 
                 if current_vmaf > vmaf_target_max:
@@ -128,7 +128,7 @@ def encode_job(job: EncoderJobContext):
                     log.info(f"VMAF {current_vmaf}% is below target min {vmaf_target_min}%, decreasing CRF.")
                     stage.crf_range_max = crf_to_test - 1
 
-                job.encoder_data.encoding_stage = EncodingStage(
+                job.job_data.encoding_stage = EncodingStage(
                     stage_number_from_1=3,
                     stage_name=EncodingStageNamesEnum.SEARCHING_CRF,
                     crf_range_min=stage.crf_range_min,
@@ -136,17 +136,17 @@ def encode_job(job: EncoderJobContext):
                     last_vmaf=current_vmaf,
                     last_crf=crf_to_test
                 )
-                json_serializer.serialize_to_json(job.encoder_data, job.metadata_json_file_path)
+                json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
 
             log.info(f"Encoder: completed {job.source_file_path}")
     except TimeoutException as e:
         log.error(f"Video is already being processed: {e}")
 
 
-def _is_encoding_efficient(job: EncoderJobContext, current_vmaf: float, crf_to_test: int) -> bool:
+def _is_encoding_efficient(job: EncoderJob, current_vmaf: float, crf_to_test: int) -> bool:
     app_config = ConfigManager.get_config()
     efficiency_threshold = app_config.efficiency_threshold
-    stage = job.encoder_data.encoding_stage
+    stage = job.job_data.encoding_stage
 
     if stage.last_vmaf is not None and stage.last_crf is not None:
         vmaf_delta = abs(current_vmaf - stage.last_vmaf)
@@ -167,10 +167,10 @@ def _is_encoding_efficient(job: EncoderJobContext, current_vmaf: float, crf_to_t
     return True
 
 
-def _is_crf_prediction_valid(job: EncoderJobContext, predicted_crf: int) -> bool:
-    stage = job.encoder_data.encoding_stage
-    if (predicted_crf < job.encoder_data.encoding_stage.crf_range_min
-            or predicted_crf > job.encoder_data.encoding_stage.crf_range_max):
+def _is_crf_prediction_valid(job: EncoderJob, predicted_crf: int) -> bool:
+    stage = job.job_data.encoding_stage
+    if (predicted_crf < job.job_data.encoding_stage.crf_range_min
+            or predicted_crf > job.job_data.encoding_stage.crf_range_max):
         log.warning(f"Predicted CRF is out of bounds. Ending search.")
         log.warning(f"|-Stage bounds: %s-%s", stage.crf_range_min, stage.crf_range_max)
         log.warning(f"|-Predicted CRF: %s", predicted_crf)
@@ -179,7 +179,7 @@ def _is_crf_prediction_valid(job: EncoderJobContext, predicted_crf: int) -> bool
     return True
 
 
-def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
+def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
     log.info("Encoding iteration...")
     log.info("|-Source file: %s", job_context.source_file_path)
     log.info("|-CRF: %d", crf)
@@ -225,7 +225,7 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
 
     readable_command = shlex.join(encoding_command)
 
-    source_video_attributes = job_context.encoder_data.source_video.video_attributes
+    source_video_attributes = job_context.job_data.source_video.video_attributes
 
     cpu_threads_for_vmaf = environment_extractor.get_available_cpu_threads()
 
@@ -278,7 +278,7 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
         ffmpeg_metadata=ffmpeg_metadata_extractor.extract(output_file_path)
     )
 
-    job_context.encoder_data.iterations.append(iteration)
+    job_context.job_data.iterations.append(iteration)
     _write_embedded_metadata(output_file_path, VideoEmbeddedMetadata.from_job(job=job_context, iteration=iteration))
 
     log.info("Iteration encoded.")
@@ -288,10 +288,10 @@ def _encode_iteration(job_context: EncoderJobContext, crf: int) -> Iteration:
     return iteration
 
 
-def _predict_next_crf(job: EncoderJobContext) -> int:
+def _predict_next_crf(job: EncoderJob) -> int:
     app_config = ConfigManager.get_config()
-    stage = job.encoder_data.encoding_stage
-    iterations = job.encoder_data.iterations
+    stage = job.job_data.encoding_stage
+    iterations = job.job_data.iterations
     target_vmaf = (app_config.vmaf_min + app_config.vmaf_max) / 2
 
     if stage.last_crf is None:
@@ -328,13 +328,13 @@ def _generate_output_file_path(input_file_path: Path, crf: int) -> Path:
     return output_file_path
 
 
-def _compose_encoding_command(job_context: EncoderJobContext,
+def _compose_encoding_command(job_context: EncoderJob,
                               crf: int,
                               threads_count: int,
                               output_file_path: Path) -> list[str]:
     app_config = ConfigManager.get_config()
 
-    source_video = job_context.encoder_data.source_video
+    source_video = job_context.job_data.source_video
     source_metadata = source_video.ffmpeg_metadata
 
     color_arguments = []
@@ -407,11 +407,11 @@ def _format_duration(seconds: float) -> str:
     return " ".join(parts)
 
 
-def _encode_libx265(job_context: EncoderJobContext, command: list[str], output_file_path: Path) -> EncoderJobContext:
+def _encode_libx265(job_context: EncoderJob, command: list[str], output_file_path: Path) -> EncoderJob:
     app_config = ConfigManager.get_config()
     input_file_path = job_context.source_file_path
 
-    total_duration = job_context.encoder_data.source_video.video_attributes.duration_seconds
+    total_duration = job_context.job_data.source_video.video_attributes.duration_seconds
 
     log.debug(f"Starting encode for: {input_file_path}")
 

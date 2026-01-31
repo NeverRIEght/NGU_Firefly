@@ -7,7 +7,7 @@ from app.model.json.iteration import Iteration
 from app.model.json.source_video import SourceVideo
 
 
-class EncoderData(BaseModel):
+class JobData(BaseModel):
     schema_version: int
     source_video: SourceVideo
     encoding_stage: EncodingStage

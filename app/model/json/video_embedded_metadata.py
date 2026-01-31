@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from app.config.app_config import ConfigManager
-from app.model.encoder_job_context import EncoderJobContext
+from app.model.encoder_job_context import EncoderJob
 from app.model.json.iteration import Iteration
 
 
@@ -20,13 +20,13 @@ class VideoEmbeddedMetadata(BaseModel):
     encoding_finished_datetime: str
 
     @classmethod
-    def from_job(cls, job:EncoderJobContext, iteration: Iteration):
+    def from_job(cls, job: EncoderJob, iteration: Iteration):
         app_config = ConfigManager.get_config()
         return cls(
-            source_video_file_name=job.encoder_data.source_video.file_attributes.file_name,
-            source_video_sha256_hash=job.encoder_data.source_video.sha256_hash,
+                source_video_file_name=job.job_data.source_video.file_attributes.file_name,
+                source_video_sha256_hash=job.job_data.source_video.sha256_hash,
             encoding_software=app_config.app_name,
-            encoding_software_version=app_config.version,
+                encoding_software_version=app_config.app_version,
             ffmpeg_version=iteration.environment.ffmpeg_version,
             encoder=iteration.encoder_settings.encoder,
             codec=iteration.video_attributes.codec,

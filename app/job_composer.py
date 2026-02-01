@@ -61,7 +61,6 @@ def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
     app_config = ConfigManager.get_config()
     jobs = []
 
-    jsons_loaded = 0
     for file in from_directory.iterdir():
         if file.is_file() and file.name.endswith(JOB_FILE_SUFFIX):
             job_file_path = file
@@ -98,7 +97,6 @@ def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
                 )
 
                 jobs.append(job)
-                jsons_loaded += 1
                 log.debug("Existing job loaded for file: %s", source_video_path)
             except Exception as e:
                 log.warning(f"Invalid job metadata file found: {job_file_path}. Exception: {e}. Deleting file.")

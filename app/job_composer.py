@@ -59,6 +59,16 @@ def compose_jobs() -> list[EncoderJob]:
 
 def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
     app_config = ConfigManager.get_config()
+
+    def _handle_invalid_existing_job(path: Path, reason: str, exc: Exception = None):
+        log.error("Failed to load job metadata file: %s", path)
+        if exc:
+            log.error("|-Reason: %s. Exception: %s", reason, exc)
+        else:
+            log.error("|-Reason: %s", reason)
+        log.error("|-Action: deleting invalid job metadata file.")
+        delete_file(path)
+
     jobs = []
 
     for file in from_directory.iterdir():
@@ -70,22 +80,15 @@ def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
                 try:
                     job_data = load_from_json(job_file_path)
                 except FileNotFoundError as e:
-                    log.error("Failed to load job metadata file: %s", job_file_path)
-                    log.error("|-Reason: file not found. Exception: %s", e)
-                    log.error("|-Action: deleting invalid job metadata file.")
-                    delete_file(job_file_path)
+                    _handle_invalid_existing_job(path=job_file_path, reason="file not found", exc=e)
                     continue
                 except ValueError as e:
-                    log.error("Failed to load job metadata file: %s", job_file_path)
-                    log.error("|-Reason: invalid json format. Exception: %s", e)
-                    log.error("|-Action: deleting invalid job metadata file.")
-                    delete_file(job_file_path)
+                    _handle_invalid_existing_job(path=job_file_path, reason="invalid json format", exc=e)
                     continue
 
                 _is_valid = _validate_job_data(job_data, job_file_path)
                 if not _is_valid:
-                    log.error("|-Action: deleting invalid job metadata file.")
-                    delete_file(job_file_path)
+                    _handle_invalid_existing_job(job_file_path, "validation failed")
                     continue
 
                 source_video_path = app_config.input_dir / job_data.source_video.file_attributes.file_name
@@ -116,7 +119,6 @@ def _create_jobs_from_source_files(existing_jobs: list[EncoderJob]) -> list[Enco
         for iteration in job.job_data.iterations:
             jobs_map[iteration.sha256_hash] = job
 
-    jobs_created = 0
     for item in app_config.input_dir.iterdir():
         if item.is_file() and item.suffix.lower() == ".mp4":
             source_video_path = item
@@ -138,7 +140,6 @@ def _create_jobs_from_source_files(existing_jobs: list[EncoderJob]) -> list[Enco
 
             new_jobs.append(job_context)
             log.debug(f"Created new job for {source_video_path}")
-            jobs_created += 1
 
     return new_jobs
 

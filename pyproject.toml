@@ -1,6 +1,6 @@
 [project]
 name = "NGU_Firefly"
-version = "7.0.1"
+version = "7.0.2"
 description = ""
 authors = [
     {name = "Mihail Komarov",email = "michaelkomarov03@gmail.com"}
@@ -27,7 +27,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.firefly.metadata]
 compression_engine_version = 1
-schema_version = 1
+schema_version = 2
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

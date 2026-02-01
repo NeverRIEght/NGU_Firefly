@@ -34,7 +34,7 @@ def encode_job(job: EncoderJob):
     app_config = ConfigManager.get_config()
 
     try:
-        with LockManager.acquire_job_lock(Path(job.source_file_path), Path(app_config.output_dir)):
+        with (LockManager.acquire_job_lock(Path(job.source_file_path), Path(app_config.output_dir))):
             log.info("Starting encoding job.")
             log.info("|-Source file: %s", job.source_file_path)
 
@@ -43,7 +43,6 @@ def encode_job(job: EncoderJob):
 
             while True:
                 stage = job.job_data.encoding_stage
-                iteration_start_time = time.perf_counter()
 
                 if stage.crf_range_min > stage.crf_range_max:
                     log.warning(f"CRF bounds are broken. Ending search.")
@@ -82,9 +81,8 @@ def encode_job(job: EncoderJob):
                 iteration = _encode_iteration(job_context=job, crf=crf_to_test)
                 current_vmaf = iteration.execution_data.source_to_encoded_vmaf_percent
 
-                iteration_end_time = time.perf_counter()
-                iteration_duration_seconds = iteration_end_time - iteration_start_time
-                iteration.execution_data.iteration_time_seconds = iteration_duration_seconds
+                iteration.execution_data.iteration_time_seconds = (iteration.execution_data.encoding_time_seconds +
+                                                                   iteration.execution_data.calculating_vmaf_time_seconds)
 
                 if vmaf_target_min <= current_vmaf <= vmaf_target_max:
                     log.info("CRF search successful. Ending search.")
@@ -104,7 +102,7 @@ def encode_job(job: EncoderJob):
 
                 if not _is_encoding_efficient(job, current_vmaf, crf_to_test):
                     best_iteration = min(
-                            job.job_data.iterations,
+                        job.job_data.iterations,
                         key=lambda i: abs(i.execution_data.source_to_encoded_vmaf_percent - app_config.vmaf_min)
                     )
 
@@ -199,24 +197,28 @@ def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
                                                  threads_count=threads_count,
                                                  output_file_path=output_file_path)
 
+    encoding_duration_seconds = 0.0
+
     while True:
+        attempt_start = time.perf_counter()
         file_utils.delete_file(output_file_path)
-        start_time = time.perf_counter()
 
         try:
             _encode_libx265(job_context=job_context,
                             command=encoding_command,
                             output_file_path=output_file_path)
+            attempt_end = time.perf_counter()
+            encoding_duration_seconds += (attempt_end - attempt_start)
             break  # encoding succeeded, exit the loop
 
         except LowResourcesException:
+            attempt_end = time.perf_counter()
+            encoding_duration_seconds += (attempt_end - attempt_start)
             log.warning("Encoding stopped due to low resources. Sleeping for %d seconds...",
                         app_config.low_resources_restart_delay_seconds)
             time.sleep(app_config.low_resources_restart_delay_seconds)
             log.info("Retrying to encode iteration...")
 
-    end_time = time.perf_counter()
-    encoding_duration_seconds = end_time - start_time
     encoding_finished_time = datetime.now(timezone.utc)
 
     if not file_utils.check_file_exists(output_file_path):
@@ -234,24 +236,26 @@ def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
     log.info("|-Source file: %s", job_context.source_file_path)
     log.info("|-Encoded file: %s", output_file_path)
 
-    vmaf_calculation_start_time = time.perf_counter()
+    vmaf_calculation_duration_seconds = 0.0
 
     while True:
+        attempt_start = time.perf_counter()
         try:
             vmaf_value = calculate_vmaf(input_file_path,
                                         output_file_path,
                                         source_video_attributes,
                                         cpu_threads_for_vmaf)
+            attempt_end = time.perf_counter()
+            vmaf_calculation_duration_seconds += (attempt_end - attempt_start)
             break  # calculation succeeded, exit the loop
 
         except LowResourcesException:
+            attempt_end = time.perf_counter()
+            vmaf_calculation_duration_seconds += (attempt_end - attempt_start)
             log.warning("VMAF calculation stopped due to low resources. Sleeping for %d seconds...",
                         app_config.low_resources_restart_delay_seconds)
             time.sleep(app_config.low_resources_restart_delay_seconds)
             log.info("Retrying to calculate VMAF...")
-
-    vmaf_calculation_end_time = time.perf_counter()
-    vmaf_calculation_duration_seconds = vmaf_calculation_end_time - vmaf_calculation_start_time
 
     iteration = Iteration(
         file_attributes=FileAttributes(

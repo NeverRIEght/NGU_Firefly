@@ -12,7 +12,6 @@ from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
 from app.locking import LockManager
 from app.model.encoder_job_context import EncoderJob
 from app.model.json.encoding_stage import EncodingStageNamesEnum
-from app.model.json.file_attributes import FileAttributes
 
 logs_dir = Path("../logs")
 logs_dir.mkdir(exist_ok=True)
@@ -92,10 +91,6 @@ def main():
                     continue
 
                 if job.job_data.encoding_stage.stage_name == EncodingStageNamesEnum.PREPARED:
-                    file_attributes = FileAttributes(
-                            file_name=file_utils.get_file_name_with_extension(job.source_file_path),
-                            file_size_megabytes=file_utils.get_file_size_megabytes(job.source_file_path),
-                    )
                     job.job_data.source_video.video_attributes = video_attributes_extractor.extract(
                             job.source_file_path)
                     job.job_data.source_video.ffmpeg_metadata = ffmpeg_metadata_extractor.extract(

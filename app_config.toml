@@ -27,6 +27,12 @@ threads_count = 0
 # Value: true/false
 disable_resources_monitoring = false
 
+# Delay in seconds between CPU and RAM usage checks during encoding and VMAF calculation.
+# This value is ignored if disable_resources_monitoring=true
+# Value: float greater than or equal to 0.0
+# If the value is 0.0, then minimal safe delay will be used.
+resource_monitoring_interval_seconds = 2.0
+
 # Delay in seconds before restarting encoding after resources overuse is detected.
 # This value is ignored if disable_resources_monitoring=true
 # Value: float greater than or equal to 0.0
@@ -42,12 +48,6 @@ encoder_process_priority = "idle"
 # Values: idle, below_normal, normal, above_normal, high, real_time
 # This value is ignored if disable_resources_monitoring=true
 vmaf_process_priority = "idle"
-
-# Delay in seconds between CPU and RAM usage checks during encoding and VMAF calculation.
-# This value is ignored if disable_resources_monitoring=true
-# Value: float greater than or equal to 0.0
-# If the value is 0.0, then minimal safe delay will be used.
-ram_monitoring_interval_seconds = 2.0
 
 # Hard limit for RAM usage during encoding and VMAF calculation.
 # If RAM usage exceeds this limit, encoding or VMAF calculation will be stopped and restarted after a delay.

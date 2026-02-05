@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 CURRENT_JOB_FILE_SUFFIX = ".job.json"
 JOB_FILE_SUFFIXES = [CURRENT_JOB_FILE_SUFFIX, "_encoderdata.json"]
 
+
 def update_progress(current, total, prefix=""):
     if total <= 0:
         return
@@ -73,7 +74,7 @@ def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
 
     for file in from_directory.iterdir():
         if file.is_file() and file.name.endswith(tuple(JOB_FILE_SUFFIXES)):
-            job_file_path = file
+            job_file_path = _update_suffix_to_current(file)
             try:
                 log.debug("Loading existing job metadata from file: %s", job_file_path)
 
@@ -106,6 +107,22 @@ def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
                 delete_file(job_file_path)
 
     return jobs
+
+
+def _update_suffix_to_current(file_path: Path) -> Path:
+    if file_path.name.endswith(CURRENT_JOB_FILE_SUFFIX):
+        return file_path
+
+    for old_suffix in JOB_FILE_SUFFIXES:
+        if file_path.name.endswith(old_suffix):
+            new_name = file_path.name[:-len(old_suffix)] + CURRENT_JOB_FILE_SUFFIX
+            target_path = file_path.with_name(new_name)
+
+            if file_utils.rename_file(file_path, target_path, overwrite=False):
+                return target_path
+            break
+
+    return file_path
 
 
 def _create_jobs_from_source_files(existing_jobs: list[EncoderJob]) -> list[EncoderJob]:

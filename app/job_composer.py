@@ -177,7 +177,7 @@ def _initialize_encoder_job(source_file_path: Path, json_file_path: Path) -> Enc
                     source_video=SourceVideo(
                             file_attributes=FileAttributes(
                                     file_name=file_utils.get_file_name_with_extension(source_file_path),
-                                    file_size_megabytes=file_utils.get_file_size_megabytes(source_file_path)
+                                    file_size_bytes=file_utils.get_file_size_bytes(source_file_path)
                             ),
                             sha256_hash=hashing_service.calculate_sha256_hash(source_file_path)
                     ),

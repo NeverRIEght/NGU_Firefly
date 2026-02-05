@@ -260,7 +260,7 @@ def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
     iteration = Iteration(
         file_attributes=FileAttributes(
             file_name=output_file_path.name,
-            file_size_megabytes=file_utils.get_file_size_megabytes(output_file_path),
+                file_size_bytes=file_utils.get_file_size_bytes(output_file_path),
         ),
         sha256_hash=hashing_service.calculate_sha256_hash(output_file_path),
         video_attributes=video_attributes_extractor.extract(output_file_path),

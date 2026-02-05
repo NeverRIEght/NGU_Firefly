@@ -37,10 +37,15 @@ def get_file_parent_folder(file_path: Path) -> Path:
     return file_path.parent
 
 
-def get_file_size_megabytes(file_path: Path) -> float:
+def get_file_size_mebibytes(file_path: Path) -> float:
+    size_in_bytes = get_file_size_bytes(file_path)
+    return size_in_bytes / (1024 * 1024)
+
+
+def get_file_size_bytes(file_path: Path) -> int:
     if file_path is None:
-        log.error("get_file_size_megabytes: file_path parameter cannot be None")
-        raise ValueError("get_file_size_megabytes: file_path parameter cannot be None")
+        log.error("get_file_size_bytes: file_path parameter cannot be None")
+        raise ValueError("get_file_size_bytes: file_path parameter cannot be None")
     with LockManager.acquire_file_operation_lock(file_path, LockMode.EXCLUSIVE):
         log.debug(f"Getting file size for: {file_path}")
         try:
@@ -49,8 +54,7 @@ def get_file_size_megabytes(file_path: Path) -> float:
                 raise FileNotFoundError(f"File not found for size calculation: {file_path}")
 
             size_in_bytes = file_path.stat().st_size
-            size_in_mb = size_in_bytes / (1024 * 1024)
-            return size_in_mb
+            return size_in_bytes
         except OSError as e:
             log.error(f"Failed to access file {file_path}: {e}")
             raise

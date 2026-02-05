@@ -1,6 +1,6 @@
 [project]
 name = "NGU_Firefly"
-version = "8.0.0"
+version = "8.0.1"
 description = ""
 authors = [
     {name = "Mihail Komarov",email = "michaelkomarov03@gmail.com"}

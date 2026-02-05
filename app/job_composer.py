@@ -14,8 +14,8 @@ from app.model.json.source_video import SourceVideo
 
 log = logging.getLogger(__name__)
 
-JOB_FILE_SUFFIX = "_encoderdata.json"
-
+CURRENT_JOB_FILE_SUFFIX = ".job.json"
+JOB_FILE_SUFFIXES = [CURRENT_JOB_FILE_SUFFIX, "_encoderdata.json"]
 
 def update_progress(current, total, prefix=""):
     if total <= 0:
@@ -72,7 +72,7 @@ def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
     jobs = []
 
     for file in from_directory.iterdir():
-        if file.is_file() and file.name.endswith(JOB_FILE_SUFFIX):
+        if file.is_file() and file.name.endswith(tuple(JOB_FILE_SUFFIXES)):
             job_file_path = file
             try:
                 log.debug("Loading existing job metadata from file: %s", job_file_path)
@@ -131,9 +131,11 @@ def _create_jobs_from_source_files(existing_jobs: list[EncoderJob]) -> list[Enco
                 log.debug(f"Job exists for file: {source_video_path}, skipping.")
                 continue
 
-            json_name = f"{source_video_path.stem}{JOB_FILE_SUFFIX}.json"
+            json_name = f"{source_video_path.stem}{CURRENT_JOB_FILE_SUFFIX}"
             log.debug(f"Creating new job metadata file for {source_video_path}: {json_name}")
-            new_json_path = Path(app_config.output_dir) / json_name
+
+            firefly_jobs_directory = app_config.output_dir / "firefly" / "data" / "jobs"
+            new_json_path = firefly_jobs_directory / json_name
 
             job_context = _initialize_encoder_job(source_video_path, new_json_path)
             json_serializer.serialize_to_json(job_context.job_data, new_json_path)

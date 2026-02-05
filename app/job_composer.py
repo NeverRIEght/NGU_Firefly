@@ -31,9 +31,6 @@ def update_progress(current, total, prefix=""):
 
 def compose_jobs() -> list[EncoderJob]:
     app_config = ConfigManager.get_config()
-    log.info("Composing encoding jobs...")
-    log.info("|-Input directory: %s", app_config.input_dir)
-    log.info("|-Output directory: %s", app_config.output_dir)
 
     firefly_data_directory = app_config.output_dir / "firefly" / "data"
     firefly_data_directory.mkdir(parents=True, exist_ok=True)
@@ -41,6 +38,9 @@ def compose_jobs() -> list[EncoderJob]:
     firefly_jobs_directory = firefly_data_directory / "jobs"
     firefly_jobs_directory.mkdir(parents=True, exist_ok=True)
 
+    log.info("Composing encoding jobs...")
+    log.info("|-Input directory: %s", app_config.input_dir)
+    log.info("|-Output directory: %s", app_config.output_dir)
     log.info("|-Jobs directory: %s", firefly_jobs_directory)
 
     existing_jobs = _load_existing_jobs(firefly_jobs_directory)

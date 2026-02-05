@@ -62,6 +62,29 @@ def compose_jobs() -> list[EncoderJob]:
 def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
     app_config = ConfigManager.get_config()
 
+    jobs = []
+
+    for file in from_directory.iterdir():
+        if file.is_file() and file.name.endswith(tuple(JOB_FILE_SUFFIXES)):
+            job_file_path = _update_suffix_to_current(file)
+            try:
+                log.debug("Loading existing job metadata from file: %s", job_file_path)
+
+                job = _load_job(job_file_path)
+                if job is not None:
+                    jobs.append(job)
+                    source_video_path = app_config.input_dir / job.job_data.source_video.file_attributes.file_name
+                    log.debug("Existing job loaded for file: %s", source_video_path)
+            except Exception as e:
+                log.warning(f"Invalid job metadata file found: {job_file_path}. Exception: {e}. Deleting file.")
+                delete_file(job_file_path)
+
+    return jobs
+
+
+def _load_job(job_file_path: Path) -> EncoderJob | None:
+    app_config = ConfigManager.get_config()
+
     def _handle_invalid_existing_job(path: Path, reason: str, exc: Exception = None):
         log.error("Failed to load job metadata file: %s", path)
         if exc:
@@ -71,46 +94,32 @@ def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
         log.error("|-Action: deleting invalid job metadata file.")
         delete_file(path)
 
-    jobs = []
+    try:
+        job_data = load_from_json(job_file_path)
+    except MigrationException as e:
+        _handle_invalid_existing_job(path=job_file_path, reason="migration failed", exc=e)
+        return None
+    except FileNotFoundError as e:
+        _handle_invalid_existing_job(path=job_file_path, reason="file not found", exc=e)
+        return None
+    except ValueError as e:
+        _handle_invalid_existing_job(path=job_file_path, reason="invalid json format", exc=e)
+        return None
 
-    for file in from_directory.iterdir():
-        if file.is_file() and file.name.endswith(tuple(JOB_FILE_SUFFIXES)):
-            job_file_path = _update_suffix_to_current(file)
-            try:
-                log.debug("Loading existing job metadata from file: %s", job_file_path)
+    _is_valid = _validate_job_data(job_data, job_file_path)
+    if not _is_valid:
+        _handle_invalid_existing_job(job_file_path, "validation failed")
+        return None
 
-                try:
-                    job_data = load_from_json(job_file_path)
-                except MigrationException as e:
-                    _handle_invalid_existing_job(path=job_file_path, reason="migration failed", exc=e)
-                    continue
-                except FileNotFoundError as e:
-                    _handle_invalid_existing_job(path=job_file_path, reason="file not found", exc=e)
-                    continue
-                except ValueError as e:
-                    _handle_invalid_existing_job(path=job_file_path, reason="invalid json format", exc=e)
-                    continue
+    source_video_path = app_config.input_dir / job_data.source_video.file_attributes.file_name
 
-                _is_valid = _validate_job_data(job_data, job_file_path)
-                if not _is_valid:
-                    _handle_invalid_existing_job(job_file_path, "validation failed")
-                    continue
+    job = EncoderJob(
+            source_file_path=source_video_path,
+            metadata_json_file_path=job_file_path,
+            job_data=job_data
+    )
 
-                source_video_path = app_config.input_dir / job_data.source_video.file_attributes.file_name
-
-                job = EncoderJob(
-                        source_file_path=source_video_path,
-                        metadata_json_file_path=job_file_path,
-                        job_data=job_data
-                )
-
-                jobs.append(job)
-                log.debug("Existing job loaded for file: %s", source_video_path)
-            except Exception as e:
-                log.warning(f"Invalid job metadata file found: {job_file_path}. Exception: {e}. Deleting file.")
-                delete_file(job_file_path)
-
-    return jobs
+    return job
 
 
 def _update_suffix_to_current(file_path: Path) -> Path:

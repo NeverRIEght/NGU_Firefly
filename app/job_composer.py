@@ -6,6 +6,7 @@ from app import json_serializer, hashing_service, file_utils
 from app.config.app_config import ConfigManager
 from app.file_utils import delete_file
 from app.json_serializer import load_from_json
+from app.migrations import MigrationException
 from app.model.encoder_job_context import EncoderJob
 from app.model.json.encoding_stage import EncodingStage, EncodingStageNamesEnum
 from app.model.json.file_attributes import FileAttributes
@@ -80,6 +81,9 @@ def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
 
                 try:
                     job_data = load_from_json(job_file_path)
+                except MigrationException as e:
+                    _handle_invalid_existing_job(path=job_file_path, reason="migration failed", exc=e)
+                    continue
                 except FileNotFoundError as e:
                     _handle_invalid_existing_job(path=job_file_path, reason="file not found", exc=e)
                     continue

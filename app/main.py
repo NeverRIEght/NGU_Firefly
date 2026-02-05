@@ -82,6 +82,7 @@ def main():
                         log.info("|-Error is safe. Performing cleanup...")
                         _remove_all_non_final_iteration_files(job)
                         _use_initial_file_as_output(job)
+                        json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
 
                     processed_jobs_count += 1
                     log.info("Job finished.")

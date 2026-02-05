@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from app.model.json.encoder_data import JobData
+from app.model.json.job_data import JobData
 
 
 class EncoderJob(BaseModel):

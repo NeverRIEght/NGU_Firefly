@@ -7,9 +7,9 @@ from app.config.app_config import ConfigManager
 from app.file_utils import delete_file
 from app.json_serializer import load_from_json
 from app.model.encoder_job_context import EncoderJob
-from app.model.json.encoder_data import JobData
 from app.model.json.encoding_stage import EncodingStage, EncodingStageNamesEnum
 from app.model.json.file_attributes import FileAttributes
+from app.model.json.job_data import JobData
 from app.model.json.source_video import SourceVideo
 
 log = logging.getLogger(__name__)

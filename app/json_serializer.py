@@ -2,16 +2,16 @@ import logging
 from pathlib import Path
 
 from app.locking import LockManager, LockMode
-from app.model.json.encoder_data import JobData
+from app.model.json.job_data import JobData
 
 log = logging.getLogger(__name__)
 
 
-def serialize_to_json(job_object: JobData, output_path: str | Path):
+def serialize_to_json(job_data: JobData, output_path: str | Path):
     p = Path(output_path)
 
     try:
-        json_string = job_object.model_dump_json(indent=4)
+        json_string = job_data.model_dump_json(indent=4)
 
         with LockManager.acquire_metadata_lock(p, LockMode.EXCLUSIVE):
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -38,10 +38,10 @@ def load_from_json(input_path: str | Path) -> JobData:
     with LockManager.acquire_metadata_lock(p, LockMode.SHARED):
         try:
             json_content = p.read_text(encoding="utf-8")
-            job_object = JobData.model_validate_json(json_content)
+            job_data = JobData.model_validate_json(json_content)
 
             log.debug(f"Json loaded: {p.resolve()}")
-            return job_object
+            return job_data
 
         except Exception as e:
             raise ValueError(f"Error loading json file. Input path: {input_path}. Exception: {e}")

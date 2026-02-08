@@ -18,11 +18,11 @@ def validate(job: EncoderJob) -> bool:
     stage = job.job_data.encoding_stage
 
     if not source_file_path.exists():
-        job.log_error(f"Source file does not exist: {source_file_path}")
+        log.error(f"Source file does not exist: {source_file_path}")
         return False
 
     if not metadata_file_path.exists():
-        job.log_error(f"Metadata file does not exist: {metadata_file_path}")
+        log.error(f"Metadata file does not exist: {metadata_file_path}")
         return False
 
     if (stage.stage_name == EncodingStageNamesEnum.PREPARED

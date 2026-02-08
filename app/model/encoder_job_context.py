@@ -11,4 +11,5 @@ class EncoderJob(BaseModel):
     metadata_json_file_path: Path
     is_locked: bool = False
     is_complete: bool = False
+    priority: float = 1.0
     job_data: Optional[JobData] = None

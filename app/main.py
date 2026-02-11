@@ -234,7 +234,7 @@ def _use_initial_file_as_output(job: EncoderJob):
     app_config = ConfigManager.get_config()
     input_file_name = file_utils.get_file_name_with_extension(job.source_file_path)
     output_file_path = Path(app_config.output_dir) / input_file_name
-    file_utils.copy_file(job.source_file_path, output_file_path)
+    file_utils.copy_file_with_lock(job.source_file_path, output_file_path)
     log.info("|-Will use the original file as output.")
 
 

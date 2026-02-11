@@ -101,15 +101,19 @@ def copy_file(source_path: Path, destination_path: Path) -> bool:
     if destination_path is None:
         log.error("copy_file: destination_path parameter cannot be None")
         raise ValueError("copy_file: destination_path parameter cannot be None")
+    try:
+        shutil.copy2(source_path, destination_path)
+        log.debug(f"Copied file from {source_path} to {destination_path}")
+        return True
+    except OSError as e:
+        log.error(f"Error copying file from {source_path} to {destination_path}. Details: \n{e}")
+        return False
+
+
+def copy_file_with_lock(source_path: Path, destination_path: Path) -> bool:
     with LockManager.acquire_file_operation_lock(destination_path, LockMode.EXCLUSIVE):
         with LockManager.acquire_file_operation_lock(source_path, LockMode.SHARED):
-            try:
-                shutil.copy2(source_path, destination_path)
-                log.debug(f"Copied file from {source_path} to {destination_path}")
-                return True
-            except OSError as e:
-                log.error(f"Error copying file from {source_path} to {destination_path}. Details: \n{e}")
-                return False
+            return copy_file(source_path, destination_path)
 
 
 def rename_file(source_path: Path, destination_path: Path, overwrite: bool = False) -> bool:

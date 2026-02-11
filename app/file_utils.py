@@ -46,18 +46,18 @@ def get_file_size_bytes(file_path: Path) -> int:
     if file_path is None:
         log.error("get_file_size_bytes: file_path parameter cannot be None")
         raise ValueError("get_file_size_bytes: file_path parameter cannot be None")
-    with LockManager.acquire_file_operation_lock(file_path, LockMode.EXCLUSIVE):
-        log.debug(f"Getting file size for: {file_path}")
-        try:
-            if not file_path.is_file():
-                log.error(f"File not found for size calculation: {file_path}")
-                raise FileNotFoundError(f"File not found for size calculation: {file_path}")
 
-            size_in_bytes = file_path.stat().st_size
-            return size_in_bytes
-        except OSError as e:
-            log.error(f"Failed to access file {file_path}: {e}")
-            raise
+    log.debug(f"Getting file size for: {file_path}")
+    try:
+        if not file_path.is_file():
+            log.error(f"File not found for size calculation: {file_path}")
+            raise FileNotFoundError(f"File not found for size calculation: {file_path}")
+
+        size_in_bytes = file_path.stat().st_size
+        return size_in_bytes
+    except OSError as e:
+        log.error(f"Failed to access file {file_path}: {e}")
+        raise
 
 
 def check_file_exists(file_path: Path) -> bool:
@@ -72,6 +72,7 @@ def check_directory_exists(dir_path: Path) -> bool:
         log.error("check_directory_exists: dir_path parameter cannot be None")
         raise ValueError("check_directory_exists: dir_path parameter cannot be None")
     return dir_path.is_dir()
+
 
 def delete_file(file_path: Path) -> bool:
     if file_path is None:

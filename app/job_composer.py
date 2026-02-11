@@ -4,7 +4,7 @@ from pathlib import Path
 
 from app import json_serializer, hashing_service, file_utils
 from app.config.app_config import ConfigManager
-from app.file_utils import delete_file
+from app.file_utils import delete_file_with_lock
 from app.json_serializer import load_from_json
 from app.migrations import MigrationException
 from app.model.encoder_job_context import EncoderJob
@@ -77,7 +77,7 @@ def _load_existing_jobs(from_directory: Path) -> list[EncoderJob]:
                     log.debug("Existing job loaded for file: %s", source_video_path)
             except Exception as e:
                 log.warning(f"Invalid job metadata file found: {job_file_path}. Exception: {e}. Deleting file.")
-                delete_file(job_file_path)
+                delete_file_with_lock(job_file_path)
 
     return jobs
 
@@ -92,7 +92,7 @@ def _load_job(job_file_path: Path) -> EncoderJob | None:
         else:
             log.error("|-Reason: %s", reason)
         log.error("|-Action: deleting invalid job metadata file.")
-        delete_file(path)
+        delete_file_with_lock(path)
 
     try:
         job_data = load_from_json(job_file_path)
@@ -192,7 +192,7 @@ def _validate_job_data(job_data: JobData, job_file_path: Path) -> bool:
         log.error("|-Job metadata file: %s", job_file_path)
         log.error("|-Source video path: %s", source_video_path)
         log.error("|-Action: deleting invalid job metadata file.")
-        delete_file(job_file_path)
+        delete_file_with_lock(job_file_path)
         return False
 
     return True

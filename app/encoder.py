@@ -190,7 +190,7 @@ def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
     log.info("|-Output file: %s", output_file_path)
     log.info("|-Using threads: %d", threads_count)
 
-    file_utils.delete_file(output_file_path)
+    file_utils.delete_file_with_lock(output_file_path)
 
     encoding_command = _compose_encoding_command(job_context=job_context,
                                                  crf=crf,
@@ -201,7 +201,7 @@ def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
 
     while True:
         attempt_start = time.perf_counter()
-        file_utils.delete_file(output_file_path)
+        file_utils.delete_file_with_lock(output_file_path)
 
         try:
             _encode_libx265(job_context=job_context,
@@ -502,7 +502,7 @@ def _encode_libx265(job_context: EncoderJob, command: list[str], output_file_pat
     finally:
         if process and process.returncode != 0 or 'KeyboardInterrupt' in locals():
             log.info(f"Deleting incomplete output file: {output_file_path}")
-            file_utils.delete_file(output_file_path)
+            file_utils.delete_file_with_lock(output_file_path)
 
 
 class EncodingError(Exception):
@@ -532,11 +532,11 @@ def _write_embedded_metadata(output_file_path: Path, metadata: VideoEmbeddedMeta
 
             backup_file = output_file_path.with_suffix(".old")
 
-            file_utils.delete_file(backup_file)
+            file_utils.delete_file_with_lock(backup_file)
 
             output_file_path.rename(backup_file)
             temp_file.rename(output_file_path)
-            file_utils.delete_file(backup_file)
+            file_utils.delete_file_with_lock(backup_file)
 
             log.info(f"Wrote metadata for {output_file_path}")
         except KeyboardInterrupt as e:
@@ -550,9 +550,9 @@ def _write_embedded_metadata(output_file_path: Path, metadata: VideoEmbeddedMeta
 
 def _cleanup_metadata(temp_file: Path, backup_file: Path | None, original_file: Path):
     if temp_file:
-        file_utils.delete_file(temp_file)
+        file_utils.delete_file_with_lock(temp_file)
     if backup_file and file_utils.check_file_exists(backup_file):
         if not file_utils.check_file_exists(original_file):
             backup_file.rename(original_file)
         else:
-            file_utils.delete_file(backup_file)
+            file_utils.delete_file_with_lock(backup_file)

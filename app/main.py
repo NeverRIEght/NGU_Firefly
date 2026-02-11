@@ -224,7 +224,7 @@ def _remove_all_non_final_iteration_files(job: EncoderJob) -> int:
             output_file_path = Path(app_config.output_dir) / iteration.file_attributes.file_name
             if output_file_path.exists():
                 log.info("|-Deleting non-final iteration file: %s", output_file_path)
-                file_utils.delete_file(output_file_path)
+                file_utils.delete_file_with_lock(output_file_path)
                 deleted_files_count += 1
 
     return deleted_files_count

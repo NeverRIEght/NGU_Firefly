@@ -124,7 +124,7 @@ def calculate_vmaf(
                 finally:
                     if process and process.poll() is None:
                         process.kill()
-                    file_utils.delete_file(Path(log_filename))
+                    file_utils.delete_file_with_lock(Path(log_filename))
 
                 os.chdir(old_cwd)
 

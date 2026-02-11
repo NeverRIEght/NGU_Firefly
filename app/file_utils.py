@@ -73,21 +73,24 @@ def check_directory_exists(dir_path: Path) -> bool:
         raise ValueError("check_directory_exists: dir_path parameter cannot be None")
     return dir_path.is_dir()
 
-
 def delete_file(file_path: Path) -> bool:
     if file_path is None:
         log.error("delete_file: file_path parameter cannot be None")
         raise ValueError("delete_file: file_path parameter cannot be None")
+    if file_path.is_file():
+        try:
+            file_path.unlink()
+            log.debug(f"Deleted file: {file_path}")
+            return True
+        except OSError as e:
+            log.error(f"Error deleting file {file_path}: {e}")
+            return False
+    return False
+
+
+def delete_file_with_lock(file_path: Path) -> bool:
     with LockManager.acquire_file_operation_lock(file_path, LockMode.EXCLUSIVE):
-        if file_path.is_file():
-            try:
-                file_path.unlink()
-                log.debug(f"Deleted file: {file_path}")
-                return True
-            except OSError as e:
-                log.error(f"Error deleting file {file_path}. Details: \n{e}")
-                return False
-        return False
+        return delete_file(file_path)
 
 
 def copy_file(source_path: Path, destination_path: Path) -> bool:

@@ -11,7 +11,7 @@ CHUNK_SIZE = 65536
 
 
 def calculate_sha256_hash(file_path: Path) -> str:
-    with LockManager.acquire_file_operation_lock(file_path, LockMode.EXCLUSIVE):
+    with LockManager.acquire_file_operation_lock(file_path, LockMode.SHARED):
         if not file_path.is_file():
             log.error(f"Source file not found at {file_path.name}")
             raise FileNotFoundError(f"Source file not found at {file_path.resolve()}")

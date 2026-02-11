@@ -14,7 +14,7 @@ from app.model.json.ffmpeg_metadata import HdrType
 
 
 def extract(path_to_file: Path) -> FfmpegMetadata:
-    with LockManager.acquire_file_operation_lock(path_to_file, LockMode.EXCLUSIVE):
+    with LockManager.acquire_file_operation_lock(path_to_file, LockMode.SHARED):
         if not path_to_file.is_file():
             log.error(f"File not found: {path_to_file}")
             raise FileNotFoundError(f"File not found: {path_to_file}")

@@ -11,7 +11,7 @@ import subprocess
 
 
 def extract(path_to_file: Path) -> VideoAttributes:
-    with LockManager.acquire_file_operation_lock(path_to_file, LockMode.EXCLUSIVE):
+    with LockManager.acquire_file_operation_lock(path_to_file, LockMode.SHARED):
         if not path_to_file.is_file():
             log.error(f"File not found: {path_to_file}")
             raise FileNotFoundError(f"File not found: {path_to_file}")
@@ -58,7 +58,7 @@ def extract(path_to_file: Path) -> VideoAttributes:
 
 
 def _get_video_duration(video_path: Path) -> float | None:
-    with LockManager.acquire_file_operation_lock(video_path, LockMode.EXCLUSIVE):
+    with LockManager.acquire_file_operation_lock(video_path, LockMode.SHARED):
         log.debug(f"Getting video duration for: {video_path}")
         try:
             command = [

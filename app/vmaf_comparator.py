@@ -35,8 +35,8 @@ def calculate_vmaf(
     - ffmpeg built with libvmaf
     """
 
-    with LockManager.acquire_file_operation_lock(source_video_path, LockMode.EXCLUSIVE):
-        with LockManager.acquire_file_operation_lock(encoded_video_path, LockMode.EXCLUSIVE):
+    with LockManager.acquire_file_operation_lock(source_video_path, LockMode.SHARED):
+        with LockManager.acquire_file_operation_lock(encoded_video_path, LockMode.SHARED):
             if not source_video_path.is_file():
                 raise FileNotFoundError(f"Reference file not found: {source_video_path}")
             if not encoded_video_path.is_file():

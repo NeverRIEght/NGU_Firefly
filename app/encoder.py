@@ -532,11 +532,11 @@ def _write_embedded_metadata(output_file_path: Path, metadata: VideoEmbeddedMeta
 
             backup_file = output_file_path.with_suffix(".old")
 
-            file_utils.delete_file_with_lock(backup_file)
+            file_utils.delete_file(backup_file)
 
             output_file_path.rename(backup_file)
             temp_file.rename(output_file_path)
-            file_utils.delete_file_with_lock(backup_file)
+            file_utils.delete_file(backup_file)
 
             log.info(f"Wrote metadata for {output_file_path}")
         except KeyboardInterrupt as e:
@@ -550,9 +550,9 @@ def _write_embedded_metadata(output_file_path: Path, metadata: VideoEmbeddedMeta
 
 def _cleanup_metadata(temp_file: Path, backup_file: Path | None, original_file: Path):
     if temp_file:
-        file_utils.delete_file_with_lock(temp_file)
+        file_utils.delete_file(temp_file)
     if backup_file and file_utils.check_file_exists(backup_file):
         if not file_utils.check_file_exists(original_file):
             backup_file.rename(original_file)
         else:
-            file_utils.delete_file_with_lock(backup_file)
+            file_utils.delete_file(backup_file)

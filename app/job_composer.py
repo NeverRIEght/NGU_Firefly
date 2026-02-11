@@ -131,7 +131,7 @@ def _update_suffix_to_current(file_path: Path) -> Path:
             new_name = file_path.name[:-len(old_suffix)] + CURRENT_JOB_FILE_SUFFIX
             target_path = file_path.with_name(new_name)
 
-            if file_utils.rename_file(file_path, target_path, overwrite=False):
+            if file_utils.rename_file_with_lock(file_path, target_path, overwrite=False):
                 return target_path
             break
 

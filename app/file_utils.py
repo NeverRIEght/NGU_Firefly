@@ -117,27 +117,20 @@ def rename_file(source_path: Path, destination_path: Path, overwrite: bool = Fal
         raise ValueError("rename_file: parameters cannot be None")
 
     if source_path.resolve() == destination_path.resolve():
-        log.debug(f"Rename skipped: source and destination are the same: {source_path}")
         return True
 
+    if not source_path.is_file():
+        return False
+
+    if destination_path.exists() and not overwrite:
+        return False
+
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    source_path.replace(destination_path)
+    return True
+
+
+def rename_file_with_lock(source_path: Path, destination_path: Path, overwrite: bool = False) -> bool:
     with LockManager.acquire_file_operation_lock(source_path, LockMode.EXCLUSIVE):
         with LockManager.acquire_file_operation_lock(destination_path, LockMode.EXCLUSIVE):
-            try:
-                if not source_path.is_file():
-                    log.error(f"Rename failed: source file not found: {source_path}")
-                    return False
-
-                if destination_path.exists() and not overwrite:
-                    log.error(f"Rename failed: destination already exists: {destination_path}")
-                    return False
-
-                destination_path.parent.mkdir(parents=True, exist_ok=True)
-
-                source_path.replace(destination_path)
-
-                log.debug(f"Renamed file from {source_path} to {destination_path}")
-                return True
-
-            except OSError as e:
-                log.error(f"Error renaming file from {source_path} to {destination_path}. Details: \n{e}")
-                return False
+            return rename_file(source_path, destination_path, overwrite)

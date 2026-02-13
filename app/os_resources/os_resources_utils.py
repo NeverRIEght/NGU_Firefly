@@ -1,4 +1,5 @@
 import logging
+import subprocess
 
 from app.os_resources.exceptions import LowResourcesException
 
@@ -15,7 +16,7 @@ def offload_if_memory_low(process):
     mem = psutil.virtual_memory()
     if mem.percent > app_config.ram_percent_hard_limit or mem.available < (app_config.ram_hard_limit_bytes):
         log.debug("System RAM is low (%.1f%% used). Stopping to prevent swap", mem.percent)
-        process.kill()
+        terminate_process_safely(process)
         raise LowResourcesException(f"Process killed due to low memory: {mem.percent}% used")
 
 
@@ -78,3 +79,42 @@ def set_process_priority(process, priority_str):
     except Exception as e:
         pid = getattr(process, 'pid', 'unknown')
         log.error(f"Failed to set priority for PID {pid}: {e}")
+
+
+def terminate_process_safely(process: subprocess.Popen):
+    if process is None or process.poll() is not None:
+        return
+
+    try:
+        root_process = psutil.Process(process.pid)
+        all_procs = root_process.children(recursive=True)
+        all_procs.append(root_process)
+    except psutil.NoSuchProcess:
+        return
+
+    # Graceful termination first (SIGTERM)
+    for p in all_procs:
+        try:
+            p.terminate()
+        except psutil.NoSuchProcess:
+            pass
+
+    gone, alive = psutil.wait_procs(all_procs, timeout=5)
+
+    # Force kill any remaining alive processes (SIGKILL)
+    for p in alive:
+        try:
+            p.kill()
+        except psutil.NoSuchProcess:
+            pass
+
+    psutil.wait_procs(alive, timeout=2)
+
+    if process.stdout: process.stdout.close()
+    if process.stderr: process.stderr.close()
+    if process.stdin: process.stdin.close()
+
+    try:
+        process.wait(timeout=0.1)
+    except (subprocess.TimeoutExpired, ProcessLookupError):
+        pass

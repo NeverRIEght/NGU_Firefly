@@ -118,15 +118,20 @@ def calculate_vmaf(
                     with open(log_param, 'r') as f:
                         json_data = json.load(f)
                 except LowResourcesException:
-                    if process:
-                        process.kill()
+                    raise LowResourcesException("VMAF calculation stopped due to low system resources.")
+                except (json.JSONDecodeError, KeyError) as e:
+                    log.error(f"VMAF log file is corrupted or incomplete: {e}")
+                    raise RuntimeError(f"Could not parse VMAF results: {e}")
+                except PermissionError as e:
+                    log.error(f"Permission denied while accessing files: {e}")
                     raise
+                except Exception as e:
+                    log.exception(f"VMAF calculation failed: {str(e)}")
+                    raise RuntimeError(f"VMAF failure: {e}")
                 finally:
-                    if process and process.poll() is None:
-                        process.kill()
+                    os.chdir(old_cwd)
+                    os_resources_utils.terminate_process_safely(process)
                     file_utils.delete_file(Path(log_filename))
-
-                os.chdir(old_cwd)
 
                 return float(json_data["pooled_metrics"]["vmaf"]["mean"])
 

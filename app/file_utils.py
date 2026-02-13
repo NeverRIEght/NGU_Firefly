@@ -74,15 +74,47 @@ def check_directory_exists(dir_path: Path) -> bool:
     return dir_path.is_dir()
 
 
-def delete_file(file_path: Path) -> bool:
+def delete_file(file_path: Path, retries: int = 5, initial_delay: float = 0.5) -> bool:
+    """
+    Delete a file with retry logic for file handle issues.
+
+    Args:
+        file_path: Path to the file to delete
+        retries: Number of retry attempts
+        initial_delay: Initial delay in seconds, doubles with each retry
+
+    Returns:
+        True if file was deleted successfully, False otherwise
+    """
     if file_path is None:
         log.error("delete_file: file_path parameter cannot be None")
         raise ValueError("delete_file: file_path parameter cannot be None")
-    if file_path.is_file():
+
+    if not file_path.is_file():
+        return False
+
+    import time
+    delay = initial_delay
+
+    for attempt in range(retries):
         try:
             file_path.unlink()
-            log.debug(f"Deleted file: {file_path}")
+            if attempt > 0:
+                log.info(f"Successfully deleted file after {attempt + 1} attempts: {file_path}")
+            else:
+                log.debug(f"Deleted file: {file_path}")
             return True
+        except PermissionError as e:
+            # Windows Error 32: File is being used by another process
+            if attempt < retries - 1:
+                log.warning(
+                        f"File locked (attempt {attempt + 1}/{retries}), retrying in {delay:.1f}s: {file_path.name}")
+                time.sleep(delay)
+                delay = min(delay * 2, 10)
+            else:
+                log.error(f"Failed to delete file after {retries} attempts: {file_path}")
+                log.error(f"Error details: {e}")
+                return False
         except OSError as e:
             log.error(f"Error deleting file {file_path}: {e}")
             return False

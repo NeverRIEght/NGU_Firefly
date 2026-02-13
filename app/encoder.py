@@ -49,12 +49,12 @@ def encode_job(job: EncoderJob):
                     log.warning(f"|-Stage bounds: %s-%s", stage.crf_range_min, stage.crf_range_max)
                     log.warning(f"|-Last tested CRF: %s", stage.last_crf)
                     job.job_data.encoding_stage = EncodingStage(
-                        stage_number_from_1=-3,
-                        stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
-                        crf_range_min=stage.crf_range_min,
-                        crf_range_max=stage.crf_range_max,
-                        last_vmaf=stage.last_vmaf,
-                        last_crf=stage.last_crf
+                            stage_number_from_1=-3,
+                            stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
+                            crf_range_min=stage.crf_range_min,
+                            crf_range_max=stage.crf_range_max,
+                            last_vmaf=stage.last_vmaf,
+                            last_crf=stage.last_crf
                     )
                     json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
                     break
@@ -63,12 +63,12 @@ def encode_job(job: EncoderJob):
 
                 if not _is_crf_prediction_valid(job, crf_to_test):
                     job.job_data.encoding_stage = EncodingStage(
-                        stage_number_from_1=-3,
-                        stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
-                        crf_range_min=stage.crf_range_min,
-                        crf_range_max=stage.crf_range_max,
-                        last_vmaf=stage.last_vmaf,
-                        last_crf=stage.last_crf
+                            stage_number_from_1=-3,
+                            stage_name=EncodingStageNamesEnum.UNREACHABLE_VMAF,
+                            crf_range_min=stage.crf_range_min,
+                            crf_range_max=stage.crf_range_max,
+                            last_vmaf=stage.last_vmaf,
+                            last_crf=stage.last_crf
                     )
                     json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
                     break
@@ -90,29 +90,29 @@ def encode_job(job: EncoderJob):
                     log.info(f"|-VMAF: {current_vmaf}%")
 
                     job.job_data.encoding_stage = EncodingStage(
-                        stage_number_from_1=4,
-                        stage_name=EncodingStageNamesEnum.CRF_FOUND,
-                        crf_range_min=crf_to_test,
-                        crf_range_max=crf_to_test,
-                        last_vmaf=current_vmaf,
-                        last_crf=crf_to_test
+                            stage_number_from_1=4,
+                            stage_name=EncodingStageNamesEnum.CRF_FOUND,
+                            crf_range_min=crf_to_test,
+                            crf_range_max=crf_to_test,
+                            last_vmaf=current_vmaf,
+                            last_crf=crf_to_test
                     )
                     json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
                     break
 
                 if not _is_encoding_efficient(job, current_vmaf, crf_to_test):
                     best_iteration = min(
-                        job.job_data.iterations,
-                        key=lambda i: abs(i.execution_data.source_to_encoded_vmaf_percent - app_config.vmaf_min)
+                            job.job_data.iterations,
+                            key=lambda i: abs(i.execution_data.source_to_encoded_vmaf_percent - app_config.vmaf_min)
                     )
 
                     job.job_data.encoding_stage = EncodingStage(
-                        stage_number_from_1=-2,
-                        stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
-                        crf_range_min=stage.crf_range_min,
-                        crf_range_max=stage.crf_range_max,
-                        last_vmaf=best_iteration.execution_data.source_to_encoded_vmaf_percent,
-                        last_crf=best_iteration.encoder_settings.crf
+                            stage_number_from_1=-2,
+                            stage_name=EncodingStageNamesEnum.STOPPED_VMAF_DELTA,
+                            crf_range_min=stage.crf_range_min,
+                            crf_range_max=stage.crf_range_max,
+                            last_vmaf=best_iteration.execution_data.source_to_encoded_vmaf_percent,
+                            last_crf=best_iteration.encoder_settings.crf
                     )
                     json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
                     break
@@ -127,12 +127,12 @@ def encode_job(job: EncoderJob):
                     stage.crf_range_max = crf_to_test - 1
 
                 job.job_data.encoding_stage = EncodingStage(
-                    stage_number_from_1=3,
-                    stage_name=EncodingStageNamesEnum.SEARCHING_CRF,
-                    crf_range_min=stage.crf_range_min,
-                    crf_range_max=stage.crf_range_max,
-                    last_vmaf=current_vmaf,
-                    last_crf=crf_to_test
+                        stage_number_from_1=3,
+                        stage_name=EncodingStageNamesEnum.SEARCHING_CRF,
+                        crf_range_min=stage.crf_range_min,
+                        crf_range_max=stage.crf_range_max,
+                        last_vmaf=current_vmaf,
+                        last_crf=crf_to_test
                 )
                 json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
 
@@ -258,28 +258,28 @@ def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
             log.info("Retrying to calculate VMAF...")
 
     iteration = Iteration(
-        file_attributes=FileAttributes(
-            file_name=output_file_path.name,
-                file_size_bytes=file_utils.get_file_size_bytes(output_file_path),
-        ),
-        sha256_hash=hashing_service.calculate_sha256_hash(output_file_path),
-        video_attributes=video_attributes_extractor.extract(output_file_path),
-        encoder_settings=EncoderSettings(
-            encoder="libx265",
-            preset=app_config.encoder_preset,
-            crf=crf,
-            cpu_threads_to_use=threads_count
-        ),
-        execution_data=ExecutionData(
-            ffmpeg_command_used=readable_command,
-            source_to_encoded_vmaf_percent=vmaf_value,
-            encoding_finished_datetime=encoding_finished_time.isoformat(),
-            encoding_time_seconds=encoding_duration_seconds,
-            calculating_vmaf_time_seconds=vmaf_calculation_duration_seconds,
-            vmaf_cpu_threads_used=cpu_threads_for_vmaf
-        ),
-        environment=environment_extractor.extract(),
-        ffmpeg_metadata=ffmpeg_metadata_extractor.extract(output_file_path)
+            file_attributes=FileAttributes(
+                    file_name=output_file_path.name,
+                    file_size_bytes=file_utils.get_file_size_bytes(output_file_path),
+            ),
+            sha256_hash=hashing_service.calculate_sha256_hash(output_file_path),
+            video_attributes=video_attributes_extractor.extract(output_file_path),
+            encoder_settings=EncoderSettings(
+                    encoder="libx265",
+                    preset=app_config.encoder_preset,
+                    crf=crf,
+                    cpu_threads_to_use=threads_count
+            ),
+            execution_data=ExecutionData(
+                    ffmpeg_command_used=readable_command,
+                    source_to_encoded_vmaf_percent=vmaf_value,
+                    encoding_finished_datetime=encoding_finished_time.isoformat(),
+                    encoding_time_seconds=encoding_duration_seconds,
+                    calculating_vmaf_time_seconds=vmaf_calculation_duration_seconds,
+                    vmaf_cpu_threads_used=cpu_threads_for_vmaf
+            ),
+            environment=environment_extractor.extract(),
+            ffmpeg_metadata=ffmpeg_metadata_extractor.extract(output_file_path)
     )
 
     job_context.job_data.iterations.append(iteration)
@@ -420,15 +420,17 @@ def _encode_libx265(job_context: EncoderJob, command: list[str], output_file_pat
     log.debug(f"Starting encode for: {input_file_path}")
 
     process = None
+    is_encode_successful = False
+    process_already_terminated = False
     start_real_time = time.perf_counter()
     try:
         process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            universal_newlines=True,
-            bufsize=1
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                universal_newlines=True,
+                bufsize=1
         )
 
         if not app_config.disable_resources_monitoring:
@@ -478,29 +480,37 @@ def _encode_libx265(job_context: EncoderJob, command: list[str], output_file_pat
 
         print()
 
-        if process.returncode != 0:
+        process.wait()
+        if process.returncode == 0:
+            is_encode_successful = True
+        else:
             log.error(f"Error while encoding the file: '{input_file_path}'.")
             raise EncodingError("FFmpeg failed to encode the video.")
 
         return job_context
     except LowResourcesException:
+        process_already_terminated = True
         raise LowResourcesException("Encoding stopped due to low system resources.")
+    except subprocess.CalledProcessError as e:
+        log.error(f"FFmpeg execution failed with return code {e.returncode}")
+        raise EncodingError(f"FFmpeg failed: {e.stderr}")
     except FileNotFoundError:
-        log.error("FFmpeg not found. Please check your installation and PATH settings.")
-        return job_context
+        log.error("FFmpeg binary not found. Check your PATH.")
+        raise
     except KeyboardInterrupt:
         log.info("Encoding interrupted by user.")
-        if process:
-            process.kill()
+        process_already_terminated = True
+        os_resources_utils.terminate_process_safely(process)
         raise
-    except EncodingError:
-        return job_context
     except Exception as e:
         log.error(f"Unexpected system error while encoding '{input_file_path}'. Details: {e}")
         return job_context
-
     finally:
-        if process and process.returncode != 0 or 'KeyboardInterrupt' in locals():
+        if not is_encode_successful:
+            if process and not process_already_terminated:
+                if process.poll() is None:
+                    log.debug("Process still running, terminating...")
+                    os_resources_utils.terminate_process_safely(process)
             log.info(f"Deleting incomplete output file: {output_file_path}")
             file_utils.delete_file_with_lock(output_file_path)
 

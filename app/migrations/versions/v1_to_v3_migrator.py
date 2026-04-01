@@ -1,11 +1,11 @@
 from typing import Any, Dict
 
 from app.migrations.dict_utils import get_required_or_key_error, get_optional_or_default
-from app.migrations.job_data_migrator import JobDataMigrator
+from app.migrations.abstract_migrator import AbstractMigrator
 from app.migrations.migration_exception import MigrationException
 
 
-class V1ToV3Migrator(JobDataMigrator):
+class V1ToV3Migrator(AbstractMigrator):
     @property
     def source_version(self) -> int:
         return 1

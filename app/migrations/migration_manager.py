@@ -3,7 +3,7 @@ import threading
 from typing import Any, Dict, List, Optional
 
 from app.config.app_config import ConfigManager
-from app.migrations.job_data_migrator import JobDataMigrator
+from app.migrations.abstract_migrator import AbstractMigrator
 from app.migrations.migration_exception import MigrationException
 from app.migrations.versions.v1_to_v3_migrator import V1ToV3Migrator
 
@@ -18,7 +18,7 @@ class MigrationManager:
         self._target_version = target_version
 
         # Migrators list. Order is not important.
-        self._migrators: List[JobDataMigrator] = [
+        self._migrators: List[AbstractMigrator] = [
             V1ToV3Migrator(),
         ]
 
@@ -40,7 +40,7 @@ class MigrationManager:
 
         return data
 
-    def _find_migrator(self, source_version: int) -> JobDataMigrator:
+    def _find_migrator(self, source_version: int) -> AbstractMigrator:
         app_config = ConfigManager.get_config()
         for migrator in self._migrators:
             if migrator.source_version == source_version:

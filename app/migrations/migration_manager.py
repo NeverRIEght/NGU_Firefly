@@ -17,8 +17,8 @@ class MigrationManager:
     def __init__(self, target_version: int):
         self._target_version = target_version
 
-        # Migrators list. Order is important.
-        self._steps: List[JobDataMigrator] = [
+        # Migrators list. Order is not important.
+        self._migrators: List[JobDataMigrator] = [
             V1ToV3Migrator(),
         ]
 
@@ -31,7 +31,7 @@ class MigrationManager:
 
         while current_v < self._target_version:
             migrator = self._find_migrator(current_v)
-            log.debug(f"Migrating model version: {current_v} -> {self._target_version}")
+            log.debug(f"Migrating model version: {current_v} -> {migrator.target_version}")
             data = migrator.migrate(data)
             current_v = data["schema_version"]
 
@@ -40,13 +40,13 @@ class MigrationManager:
 
         return data
 
-    def _find_migrator(self, version: int) -> JobDataMigrator:
+    def _find_migrator(self, source_version: int) -> JobDataMigrator:
         app_config = ConfigManager.get_config()
-        for step in self._steps:
-            if step.source_version == version:
-                return step
+        for migrator in self._migrators:
+            if migrator.source_version == source_version:
+                return migrator
         raise MigrationException("No migrator found",
-                                 source_version=version,
+                                 source_version=source_version,
                                  target_version=app_config.schema_version)
 
     @classmethod

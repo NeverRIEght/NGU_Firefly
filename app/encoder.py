@@ -5,6 +5,7 @@ from filelock import Timeout as TimeoutException
 
 from app import file_utils, json_serializer
 from app.config.app_config import ConfigManager
+from app.encoding.command_composer import CommandComposer
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor, environment_extractor
 from app.locking import LockManager, LockMode
 from app.model.encoder_job_context import EncoderJob
@@ -192,10 +193,11 @@ def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
 
     file_utils.delete_file_with_lock(output_file_path)
 
-    encoding_command = _compose_encoding_command(job_context=job_context,
-                                                 crf=crf,
-                                                 threads_count=threads_count,
-                                                 output_file_path=output_file_path)
+    command_composer = CommandComposer.get_instance()
+    encoding_command = command_composer.compose(job_context=job_context,
+                                                crf=crf,
+                                                threads_count=threads_count,
+                                                output_file_path=output_file_path)
 
     encoding_duration_seconds = 0.0
 
@@ -330,65 +332,6 @@ def _generate_output_file_path(input_file_path: Path, crf: int) -> Path:
 
     output_file_path = output_folder_path / output_filename
     return output_file_path
-
-
-def _compose_encoding_command(job_context: EncoderJob,
-                              crf: int,
-                              threads_count: int,
-                              output_file_path: Path) -> list[str]:
-    app_config = ConfigManager.get_config()
-
-    source_video = job_context.job_data.source_video
-    source_metadata = source_video.ffmpeg_metadata
-
-    color_arguments = []
-    if (source_metadata.color_primaries is not None
-            and source_metadata.color_trc is not None
-            and source_metadata.colorspace is not None):
-        color_arguments += [
-            '-color_primaries', source_metadata.color_primaries,
-            '-color_trc', source_metadata.color_trc,
-            '-colorspace', source_metadata.colorspace,
-        ]
-    else:
-        log.warning("Source video is missing color metadata, encoding without explicit color settings.")
-
-    x265_params = [
-        f'crf={crf}',
-        f'pools={threads_count}',
-        'ssim-rd=1',  # better results for VMAF evaluation
-        'aq-mode=3',  # better compression for complex scenes
-    ]
-
-    command = [
-        'ffmpeg',
-        '-i', str(job_context.source_file_path),
-
-        '-c:v', 'libx265',
-        '-x265-params', ':'.join(x265_params),
-        '-preset', app_config.encoder_preset,
-
-        '-fps_mode', 'passthrough',
-
-        *color_arguments,
-
-        '-tag:v', 'hvc1',
-
-        '-c:a', 'copy',
-        '-map', '0:v:0',
-        '-map', '0:a?',
-        '-map_metadata', '0',
-        '-map_chapters', '0',
-        '-movflags', '+faststart',
-
-        str(output_file_path),
-
-        '-progress', 'pipe:2',
-        '-loglevel', 'info',
-        '-hide_banner'
-    ]
-
-    return command
 
 
 def _format_duration(seconds: float) -> str:

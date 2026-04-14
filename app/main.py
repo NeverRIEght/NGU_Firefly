@@ -10,6 +10,7 @@ from app import job_validator, encoder, file_utils, job_composer, json_serialize
 from app.config.app_config import ConfigManager
 from app.config.config_validator import ConfigValidator
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor
+from app.filtering.job_filter import JobFilter
 from app.locking import LockManager
 from app.model.encoder_job_context import EncoderJob
 from app.model.json.encoding_stage import EncodingStageNamesEnum
@@ -107,24 +108,8 @@ def _extract_metadata(jobs_list: List[EncoderJob]):
 
 
 def _filter_jobs(jobs_list: List[EncoderJob]) -> List[EncoderJob]:
-    filtered_jobs = []
-    for job in jobs_list:
-        if job.job_data.encoding_stage.stage_name == EncodingStageNamesEnum.METADATA_EXTRACTED:
-            source_file_name = job.job_data.source_video.file_attributes.file_name
-            hdr_types = job.job_data.source_video.ffmpeg_metadata.hdr_types
-
-            if not hdr_types or len(hdr_types) == 0:
-                filtered_jobs.append(job)
-            elif hdr_types and len(hdr_types) > 0:
-                log.info("HDR detected: %s. Skipping, HDR is not supported.", source_file_name)
-                job.job_data.encoding_stage.stage_number_from_1 = -4
-                job.job_data.encoding_stage.stage_name = EncodingStageNamesEnum.SKIPPED_IS_HDR_VIDEO
-                json_serializer.serialize_to_json(job.job_data, job.metadata_json_file_path)
-                _use_initial_file_as_output(job)
-        else:
-            filtered_jobs.append(job)
-            
-    return filtered_jobs
+    job_filter = JobFilter.get_instance()
+    return job_filter.filter(jobs_list)
 
 
 def _prioritize_jobs(jobs_list: List[EncoderJob]):

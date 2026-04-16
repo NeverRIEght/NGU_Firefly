@@ -12,12 +12,13 @@ def extract() -> Environment:
     app_config = ConfigManager.get_config()
 
     return Environment(
-            script_version=app_config.app_version,
+        script_version=app_config.app_version,
         ffmpeg_version=_extract_ffmpeg_version(),
-        encoder_version="unknown",  # TODO: extract encoder version
+        compression_engine_version=app_config.compression_engine_version,
         cpu_name=_extract_cpu_name(),
         cpu_threads=extract_cpu_threads()
     )
+
 
 def get_available_cpu_threads() -> int:
     app_config = ConfigManager.get_config()
@@ -33,6 +34,7 @@ def get_available_cpu_threads() -> int:
     valid_options = [opt for opt in possible_options if opt <= actual_threads]
 
     return random.choice(valid_options)
+
 
 def _extract_ffmpeg_version() -> str:
     try:
@@ -53,10 +55,6 @@ def _extract_ffmpeg_version() -> str:
 
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "ffmpeg not found or error occurred"
-
-
-def _extract_encoder_version() -> str:
-    pass
 
 
 def _extract_cpu_name() -> str:

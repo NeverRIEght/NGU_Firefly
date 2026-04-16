@@ -3,7 +3,7 @@ import threading
 from typing import List, Optional
 
 from app.filtering.abstract_filtering_rule import AbstractFilteringRule
-from app.filtering.rules.is_hdr_rule import IsHdrRuleAbstract
+from app.filtering.rules.is_hdr_rule import IsHdrRule
 from app.model.encoder_job_context import EncoderJob
 
 log = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ class JobFilter:
 
     def __init__(self):
         self.rules: List[AbstractFilteringRule] = [
-            IsHdrRuleAbstract(),
+            IsHdrRule(),
         ]
 
     @classmethod

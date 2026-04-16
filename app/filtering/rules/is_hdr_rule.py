@@ -8,7 +8,7 @@ from app.model.json.encoding_stage import EncodingStageNamesEnum
 log = logging.getLogger(__name__)
 
 
-class IsHdrRuleAbstract(AbstractFilteringRule):
+class IsHdrRule(AbstractFilteringRule):
     def apply(self, job: EncoderJob) -> bool:
         """
         [TEMPORARY] Filters out videos with HDR metadata, as they may require special handling and

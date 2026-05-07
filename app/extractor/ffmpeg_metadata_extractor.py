@@ -11,6 +11,7 @@ import subprocess
 
 from app.model.json.ffmpeg_metadata import FfmpegMetadata
 from app.model.json.ffmpeg_metadata import HdrType
+from app.model.json.video_embedded_metadata import VideoEmbeddedMetadata
 
 
 def extract(path_to_file: Path) -> FfmpegMetadata:
@@ -26,7 +27,7 @@ def extract(path_to_file: Path) -> FfmpegMetadata:
             '-show_entries',
             'stream=width,height,codec_name,r_frame_rate,avg_frame_rate,tags,bit_rate,profile,'
             + 'pix_fmt,chroma_location,color_primaries,color_transfer,color_space,level,side_data_list'
-            + ':format=size,duration,bit_rate,nb_frames',
+            + ':format=size,duration,bit_rate,nb_frames,tags',
             '-of', 'json',
             str(path_to_file),
         ]
@@ -50,6 +51,9 @@ def extract(path_to_file: Path) -> FfmpegMetadata:
     stream_data = video_streams[0] if video_streams else {}
     tags = stream_data.get('tags', {})
 
+    format_data = ffprobe_output.get('format', {})
+    format_tags = format_data.get('tags', {})
+
     metadata = FfmpegMetadata(
         pixel_aspect_ratio=_extract_pixel_aspect_ratio(path_to_file, stream_data, tags),
         profile=_extract_profile(path_to_file, stream_data),
@@ -60,6 +64,7 @@ def extract(path_to_file: Path) -> FfmpegMetadata:
         colorspace=_extract_colorspace(path_to_file, stream_data),
         level=_extract_level(path_to_file, stream_data),
         hdr_types=_detect_hdr_types(stream_data, tags),
+        video_embedded_metadata=_extract_embedded_metadata(path_to_file, format_tags),
     )
 
     return metadata
@@ -171,3 +176,17 @@ def _detect_hdr_types(stream_data: dict, tags) -> Set[HdrType]:
         detected.add(HdrType.HDR10)
 
     return detected
+
+
+def _extract_embedded_metadata(file_path: Path, format_tags: dict) -> VideoEmbeddedMetadata | None:
+    comment = format_tags.get('comment')
+    if not comment or not comment.startswith('encoder_metadata:'):
+        return None
+
+    try:
+        json_str = comment[len('encoder_metadata:'):]
+        data = json.loads(json_str)
+        return VideoEmbeddedMetadata.model_validate(data)
+    except Exception as e:
+        log.warning(f"Failed to parse embedded metadata for {file_path}: {e}")
+        return None

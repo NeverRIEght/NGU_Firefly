@@ -3,6 +3,8 @@ from typing import Optional, Set
 
 from pydantic import BaseModel, Field
 
+from app.model.json.video_embedded_metadata import VideoEmbeddedMetadata
+
 
 class HdrType(str, Enum):
     DOLBY_VISION = "dolby_vision"
@@ -22,3 +24,4 @@ class FfmpegMetadata(BaseModel):
     profile: Optional[str] = None
     level: Optional[int] = None
     hdr_types: Set[HdrType] = Field(default_factory=set)
+    video_embedded_metadata: Optional[VideoEmbeddedMetadata] = None

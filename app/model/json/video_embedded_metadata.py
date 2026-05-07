@@ -1,8 +1,11 @@
+from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
 from app.config.app_config import ConfigManager
-from app.model.encoder_job_context import EncoderJob
-from app.model.json.iteration import Iteration
+
+if TYPE_CHECKING:
+    from app.model.encoder_job_context import EncoderJob
+    from app.model.json.iteration import Iteration
 
 
 class VideoEmbeddedMetadata(BaseModel):
@@ -19,9 +22,10 @@ class VideoEmbeddedMetadata(BaseModel):
     vmaf_from_source: float
     ffmpeg_command_used: str
     encoding_finished_datetime: str
+    encodes_count: int
 
     @classmethod
-    def from_job(cls, job: EncoderJob, iteration: Iteration):
+    def from_job(cls, job: 'EncoderJob', iteration: 'Iteration'):
         app_config = ConfigManager.get_config()
         return cls(
             source_video_file_name=job.job_data.source_video.file_attributes.file_name,
@@ -37,4 +41,5 @@ class VideoEmbeddedMetadata(BaseModel):
             vmaf_from_source=iteration.execution_data.source_to_encoded_vmaf_percent,
             ffmpeg_command_used=iteration.execution_data.ffmpeg_command_used,
             encoding_finished_datetime=iteration.execution_data.encoding_finished_datetime,
+            encodes_count=(job.job_data.source_video.ffmpeg_metadata.video_embedded_metadata.encodes_count or 0) + 1,
         )

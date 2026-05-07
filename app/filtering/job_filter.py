@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from app.filtering.abstract_filtering_rule import AbstractFilteringRule
 from app.filtering.rules.is_hdr_rule import IsHdrRule
+from app.filtering.rules.already_encoded_rule import AlreadyEncodedRule
 from app.model.encoder_job_context import EncoderJob
 
 log = logging.getLogger(__name__)
@@ -15,6 +16,7 @@ class JobFilter:
 
     def __init__(self):
         self.rules: List[AbstractFilteringRule] = [
+            AlreadyEncodedRule(),
             IsHdrRule(),
         ]
 

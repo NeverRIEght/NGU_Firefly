@@ -81,3 +81,10 @@ efficiency_threshold = 0.28
 # Encode preset for libx265 encoder
 # Values: ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placebo
 encoder_preset = "veryslow"
+
+# Amount of allowed encodes. If the video was encoded with previous version of compression engine,
+# in another codec, etc., it may be re-encoded multiple times which leads to quality loss.
+# This parameter limits the amount of re-encodes to prevent excessive quality loss.
+# Value: integer greater than or equal to 0
+# Default value is 2, which means that the video will be encoded at most 2 times (initial encoding + 1 re-encode)
+max_encodes_limit = 2

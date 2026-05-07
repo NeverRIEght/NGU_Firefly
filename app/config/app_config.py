@@ -41,6 +41,7 @@ class AppConfig(BaseModel):
     vmaf_max: float = 97.0
     efficiency_threshold: float = 0.28
     encoder_preset: str = "veryslow"
+    max_encodes_limit: int = 2
 
 
 class ConfigManager:

@@ -27,6 +27,12 @@ class VideoEmbeddedMetadata(BaseModel):
     @classmethod
     def from_job(cls, job: 'EncoderJob', iteration: 'Iteration'):
         app_config = ConfigManager.get_config()
+
+        encodes_count = 0
+        if job.job_data.source_video.ffmpeg_metadata.video_embedded_metadata:
+            encodes_count = job.job_data.source_video.ffmpeg_metadata.video_embedded_metadata.encodes_count
+        encodes_count += 1
+
         return cls(
             source_video_file_name=job.job_data.source_video.file_attributes.file_name,
             source_video_sha256_hash=job.job_data.source_video.sha256_hash,
@@ -41,5 +47,5 @@ class VideoEmbeddedMetadata(BaseModel):
             vmaf_from_source=iteration.execution_data.source_to_encoded_vmaf_percent,
             ffmpeg_command_used=iteration.execution_data.ffmpeg_command_used,
             encoding_finished_datetime=iteration.execution_data.encoding_finished_datetime,
-            encodes_count=(job.job_data.source_video.ffmpeg_metadata.video_embedded_metadata.encodes_count or 0) + 1,
+            encodes_count=encodes_count,
         )

@@ -25,7 +25,7 @@ threads_count = 0
 # Disable resources monitoring during encoding and VMAF calculation.
 # If false, then CPU and RAM usage will be monitored to stop encoding if OS resources are overused.
 # Value: true/false
-disable_resources_monitoring = false
+disable_resources_monitoring = true
 
 # Delay in seconds between CPU and RAM usage checks during encoding and VMAF calculation.
 # This value is ignored if disable_resources_monitoring=true

@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
-from app.config.app_config import ConfigManager
+from app.config.config_manager import ConfigManager
 
 if TYPE_CHECKING:
     from app.model.encoder_job_context import EncoderJob

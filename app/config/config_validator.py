@@ -9,47 +9,55 @@ log = logging.getLogger(__name__)
 
 class ConfigValidator:
     @staticmethod
-    def validate(config: AppConfig) -> None:
+    def validate(config: AppConfig) -> AppConfig:
+        updates = {}
         available_threads_count = environment_extractor.extract_cpu_threads()
 
         if not file_utils.check_directory_exists(config.input_dir):
             raise ValueError(f"Input directory does not exist: {config.input_dir}")
+
         if not file_utils.check_directory_exists(config.output_dir):
             log.warning(f"Output directory does not exist: {config.output_dir}. Will create it.")
             config.output_dir.mkdir(parents=True, exist_ok=True)
+
         if config.threads_count < 0:
             raise ValueError("Threads count must be a positive integer.")
         if config.threads_count == 0:
             log.warning("Threads count is set to 0. Will use all available CPU threads.")
-            config.threads_count = available_threads_count
-        if config.threads_count > environment_extractor.extract_cpu_threads():
+            updates["threads_count"] = available_threads_count
+        elif config.threads_count > available_threads_count:
             log.warning("Threads count is too large for the hardware. Using maximum available threads.")
-            config.threads_count = available_threads_count
+            updates["threads_count"] = available_threads_count
+
         if config.low_resources_restart_delay_seconds < 0.5:
-            log.warning("Low resources restart delay is lower than safe. Setting to default value of 20 seconds.")
-            config.low_resources_restart_delay_seconds = 0.5
-        if config.encoder_process_priority not in [
-            "idle", "below_normal", "normal", "above_normal", "high", "real_time"
-        ]:
+            log.warning(
+                "Low resources restart delay is lower than safe. Setting to the minimal safe value of 0.5 seconds."
+            )
+            updates["low_resources_restart_delay_seconds"] = 0.5
+
+        valid_priorities = {"idle", "below_normal", "normal", "above_normal", "high", "real_time"}
+        if config.encoder_process_priority not in valid_priorities:
             raise ValueError("Invalid encode process priority in configuration.")
-        if config.vmaf_process_priority not in [
-            "idle", "below_normal", "normal", "above_normal", "high", "real_time"
-        ]:
+        if config.vmaf_process_priority not in valid_priorities:
             raise ValueError("Invalid VMAF process priority in configuration.")
+
         if config.ram_monitoring_interval_seconds < 0.5:
-            log.warning("RAM monitoring interval is lower than safe. Setting to default value of 2 seconds.")
-            config.ram_monitoring_interval_seconds = 0.5
+            log.warning("RAM monitoring interval is lower than safe. Setting to the minimal safe value of 0.5 seconds.")
+            updates["ram_monitoring_interval_seconds"] = 0.5
+
         if config.ram_percent_hard_limit < 0.0 or config.ram_percent_hard_limit >= 100.0:
             raise ValueError(
-                    "Invalid RAM percent hard limit in configuration. Expected: 0.0 < ram_percent_hard_limit < 100.0.")
+                "Invalid RAM percent hard limit in configuration. Expected: 0.0 <= ram_percent_hard_limit < 100.0.")
         if config.ram_percent_hard_limit == 0:
             log.warning("RAM percent hard limit is set to 0. Setting to default value of 85.")
-            config.ram_percent_hard_limit = 85
+            updates["ram_percent_hard_limit"] = 85.0
+
         if config.ram_hard_limit_bytes < 0:
             raise ValueError("Invalid RAM hard limit bytes in configuration. Expected: ram_hard_limit_bytes >= 0.")
         if config.ram_hard_limit_bytes == 0:
             log.warning("RAM hard limit bytes is set to 0. Setting to default value of 500 MB.")
-            config.ram_hard_limit_bytes = 500 * 1024 * 1024
+            updates["ram_hard_limit_bytes"] = 500 * 1024 * 1024
+
         if config.crf_min < 0 or config.crf_max > 51 or config.crf_min >= config.crf_max:
             raise ValueError("Invalid CRF range in configuration. Expected: 0 <= crf_min < crf_max <= 51.")
         if config.initial_crf > config.crf_max or config.initial_crf < config.crf_min:
@@ -58,10 +66,17 @@ class ConfigValidator:
             raise ValueError("Invalid VMAF range in configuration. Expected: 0.0 <= vmaf_min < vmaf_max <= 100.0.")
         if config.efficiency_threshold <= 0.0 or config.efficiency_threshold >= 0.5:
             raise ValueError(
-                    "Invalid efficiency threshold in configuration. Expected: 0.0 < efficiency_threshold < 0.5."
+                "Invalid efficiency threshold in configuration. Expected: 0.0 < efficiency_threshold < 0.5."
             )
-        if config.encoder_preset not in [
+
+        valid_presets = {
             "ultrafast", "superfast", "veryfast", "faster", "fast",
             "medium", "slow", "slower", "veryslow", "placebo"
-        ]:
+        }
+        if config.encoder_preset not in valid_presets:
             raise ValueError("Invalid encode preset in configuration.")
+
+        if updates:
+            return config.model_copy(update=updates)
+
+        return config

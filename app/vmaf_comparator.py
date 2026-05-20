@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 from app import file_utils
-from app.config.app_config import ConfigManager
+from app.config.config_manager import ConfigManager
 from app.locking import LockManager, LockMode
 from app.model.json.video_attributes import VideoAttributes
 from app.os_resources import os_resources_utils

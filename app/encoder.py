@@ -4,13 +4,14 @@ import re
 from filelock import Timeout as TimeoutException
 
 from app import file_utils, json_serializer
-from app.config.app_config import ConfigManager
+from app.config.config_manager import ConfigManager
 from app.encoding.command_composer import CommandComposer
 from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor, environment_extractor
 from app.locking import LockManager, LockMode
 from app.model.encoder_job_context import EncoderJob
 from app.model.json.encoder_settings import EncoderSettings
 from app.model.json.encoding_stage import EncodingStageNamesEnum, EncodingStage
+from app.model.json.environment import Environment
 from app.model.json.execution_data import ExecutionData
 from app.model.json.file_attributes import FileAttributes
 from app.model.json.iteration import Iteration
@@ -280,7 +281,13 @@ def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
                     calculating_vmaf_time_seconds=vmaf_calculation_duration_seconds,
                     vmaf_cpu_threads_used=cpu_threads_for_vmaf
             ),
-            environment=environment_extractor.extract(),
+            environment=Environment(
+                script_version=app_config.app_version,
+                ffmpeg_version=environment_extractor.extract_ffmpeg_version(),
+                compression_engine_version=app_config.compression_engine_version,
+                cpu_name=environment_extractor.extract_cpu_name(),
+                cpu_threads=environment_extractor.extract_cpu_threads()
+            ),
             ffmpeg_metadata=ffmpeg_metadata_extractor.extract(output_file_path)
     )
 

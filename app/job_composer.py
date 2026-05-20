@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from app import json_serializer, hashing_service, file_utils
-from app.config.app_config import ConfigManager
+from app.config.config_manager import ConfigManager
 from app.file_utils import delete_file_with_lock
 from app.json_serializer import load_from_json
 from app.migrations import MigrationException

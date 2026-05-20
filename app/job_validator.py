@@ -7,7 +7,7 @@ log = logging.getLogger(__name__)
 from pathlib import Path
 
 from app.model.encoder_job_context import EncoderJob
-from app.config.app_config import ConfigManager
+from app.config.config_manager import ConfigManager
 
 
 def validate(job: EncoderJob) -> bool:

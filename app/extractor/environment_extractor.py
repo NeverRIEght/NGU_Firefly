@@ -4,23 +4,9 @@ import subprocess
 
 from cpuinfo import get_cpu_info
 
-from app.config.app_config import ConfigManager
-from app.model.json.environment import Environment
-
-
-def extract() -> Environment:
-    app_config = ConfigManager.get_config()
-
-    return Environment(
-        script_version=app_config.app_version,
-        ffmpeg_version=_extract_ffmpeg_version(),
-        compression_engine_version=app_config.compression_engine_version,
-        cpu_name=_extract_cpu_name(),
-        cpu_threads=extract_cpu_threads()
-    )
-
 
 def get_available_cpu_threads() -> int:
+    from app.config.config_manager import ConfigManager
     app_config = ConfigManager.get_config()
     if not app_config.randomize_threads_count:
         if app_config.threads_count == 0:
@@ -36,7 +22,7 @@ def get_available_cpu_threads() -> int:
     return random.choice(valid_options)
 
 
-def _extract_ffmpeg_version() -> str:
+def extract_ffmpeg_version() -> str:
     try:
         result = subprocess.run(
             ['ffmpeg', '-version'],
@@ -57,7 +43,7 @@ def _extract_ffmpeg_version() -> str:
         return "ffmpeg not found or error occurred"
 
 
-def _extract_cpu_name() -> str:
+def extract_cpu_name() -> str:
     cpu_info = get_cpu_info()
     cpu_model = cpu_info['brand_raw']
 

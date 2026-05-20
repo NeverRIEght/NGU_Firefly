@@ -3,7 +3,7 @@ import threading
 from pathlib import Path
 from typing import Any, Optional
 
-from app.config.app_config import ConfigManager
+from app.config.config_manager import ConfigManager
 from app.model.encoder_job_context import EncoderJob
 
 log = logging.getLogger(__name__)

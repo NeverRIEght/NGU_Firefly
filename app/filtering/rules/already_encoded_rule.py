@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 from app import json_serializer
-from app.config.app_config import ConfigManager
+from app.config.config_manager import ConfigManager
 from app.filtering.abstract_filtering_rule import AbstractFilteringRule
 from app.model.encoder_job_context import EncoderJob
 from app.model.json.encoding_stage import EncodingStageNamesEnum

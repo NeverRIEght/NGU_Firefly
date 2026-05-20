@@ -7,7 +7,7 @@ log = logging.getLogger(__name__)
 
 import psutil
 
-from app.config.app_config import ConfigManager
+from app.config.config_manager import ConfigManager
 
 
 def offload_if_memory_low(process):

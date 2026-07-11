@@ -7,31 +7,6 @@ CREATE TABLE IF NOT EXISTS "file" (
 	PRIMARY KEY("id")
 );
 
-CREATE TABLE IF NOT EXISTS "video" (
-	"id" INTEGER NOT NULL,
-	"file_id" INTEGER,
-	"display_id" INTEGER,
-	"playback_id" INTEGER,
-	"encoding_id" INTEGER,
-	"color_id" INTEGER,
-	"embedded_metadata_id" INTEGER,
-	PRIMARY KEY("id"),
-	FOREIGN KEY ("file_id") REFERENCES "file"("id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("display_id") REFERENCES "display"("id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("playback_id") REFERENCES "playback"("id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("encoding_id") REFERENCES "encoding"("id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("color_id") REFERENCES "color"("id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("embedded_metadata_id") REFERENCES "embedded_metadata"("id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("id") REFERENCES "job"("source_video_id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION
-);
-
 CREATE TABLE IF NOT EXISTS "display" (
 	"id" INTEGER NOT NULL,
 	"width_px" INTEGER NOT NULL,
@@ -60,6 +35,13 @@ CREATE TABLE IF NOT EXISTS "encoding" (
 	PRIMARY KEY("id")
 );
 
+CREATE TABLE IF NOT EXISTS "cpu" (
+	"id" INTEGER NOT NULL,
+	"cpu_name" TEXT NOT NULL,
+	"cpu_threads" INTEGER NOT NULL,
+	PRIMARY KEY("id")
+);
+
 CREATE TABLE IF NOT EXISTS "environment" (
 	"id" INTEGER NOT NULL,
 	"firefly_version" TEXT NOT NULL,
@@ -68,11 +50,33 @@ CREATE TABLE IF NOT EXISTS "environment" (
 	PRIMARY KEY("id")
 );
 
-CREATE TABLE IF NOT EXISTS "cpu" (
+CREATE TABLE IF NOT EXISTS "evaluation_metrics" (
 	"id" INTEGER NOT NULL,
-	"cpu_name" TEXT NOT NULL,
-	"cpu_threads" INTEGER NOT NULL,
+	"name" TEXT NOT NULL,
+	"version" TEXT,
 	PRIMARY KEY("id")
+);
+
+CREATE TABLE IF NOT EXISTS "job_stages" (
+	"id" INTEGER NOT NULL,
+	"name" TEXT NOT NULL,
+	PRIMARY KEY("id")
+);
+
+CREATE TABLE IF NOT EXISTS "segment_statuses" (
+	"id" INTEGER NOT NULL,
+	"name" TEXT NOT NULL,
+	PRIMARY KEY("id")
+);
+
+CREATE TABLE IF NOT EXISTS "iteration_stages" (
+	"id" INTEGER NOT NULL,
+	"name" TEXT NOT NULL,
+	PRIMARY KEY("id")
+);
+
+CREATE TABLE IF NOT EXISTS "schema" (
+	"version" INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "color" (
@@ -138,10 +142,29 @@ CREATE TABLE IF NOT EXISTS "job" (
 	ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
-CREATE TABLE IF NOT EXISTS "job_stages" (
+CREATE TABLE IF NOT EXISTS "video" (
 	"id" INTEGER NOT NULL,
-	"name" TEXT NOT NULL,
-	PRIMARY KEY("id")
+	"file_id" INTEGER,
+	"display_id" INTEGER,
+	"playback_id" INTEGER,
+	"encoding_id" INTEGER,
+	"color_id" INTEGER,
+	"embedded_metadata_id" INTEGER,
+	PRIMARY KEY("id"),
+	FOREIGN KEY ("file_id") REFERENCES "file"("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION,
+	FOREIGN KEY ("display_id") REFERENCES "display"("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION,
+	FOREIGN KEY ("playback_id") REFERENCES "playback"("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION,
+	FOREIGN KEY ("encoding_id") REFERENCES "encoding"("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION,
+	FOREIGN KEY ("color_id") REFERENCES "color"("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION,
+	FOREIGN KEY ("embedded_metadata_id") REFERENCES "embedded_metadata"("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION,
+	FOREIGN KEY ("id") REFERENCES "job"("source_video_id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
 CREATE TABLE IF NOT EXISTS "segments" (
@@ -156,12 +179,6 @@ CREATE TABLE IF NOT EXISTS "segments" (
 	ON UPDATE NO ACTION ON DELETE NO ACTION,
 	FOREIGN KEY ("job_id") REFERENCES "job"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION
-);
-
-CREATE TABLE IF NOT EXISTS "segment_statuses" (
-	"id" INTEGER NOT NULL,
-	"name" TEXT NOT NULL,
-	PRIMARY KEY("id")
 );
 
 CREATE TABLE IF NOT EXISTS "iteration" (
@@ -200,12 +217,6 @@ CREATE TABLE IF NOT EXISTS "execution_data" (
 	ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
-CREATE TABLE IF NOT EXISTS "iteration_stages" (
-	"id" INTEGER NOT NULL,
-	"name" TEXT NOT NULL,
-	PRIMARY KEY("id")
-);
-
 CREATE TABLE IF NOT EXISTS "evaluation" (
 	"id" INTEGER NOT NULL,
 	"iteration_id" INTEGER NOT NULL,
@@ -216,15 +227,4 @@ CREATE TABLE IF NOT EXISTS "evaluation" (
 	ON UPDATE NO ACTION ON DELETE NO ACTION,
 	FOREIGN KEY ("metric_id") REFERENCES "evaluation_metrics"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION
-);
-
-CREATE TABLE IF NOT EXISTS "evaluation_metrics" (
-	"id" INTEGER NOT NULL,
-	"name" TEXT NOT NULL,
-	"version" TEXT,
-	PRIMARY KEY("id")
-);
-
-CREATE TABLE IF NOT EXISTS "schema" (
-	"version" INTEGER NOT NULL
 );

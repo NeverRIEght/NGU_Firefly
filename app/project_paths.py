@@ -14,6 +14,7 @@ class ProjectPaths:
         self._base_dir = self._find_base_dir()
         self._pyproject_file = self._base_dir / "pyproject.toml"
         self._app_config_file = self._base_dir / "app_config.toml"
+        self._db_schema_file = self._base_dir / "app" / "db" / "schema.sql"
 
     @classmethod
     def _find_base_dir(cls) -> Path:
@@ -26,7 +27,7 @@ class ProjectPaths:
         )
 
     def _validate_files(self) -> None:
-        for file_path in (self._pyproject_file, self._app_config_file):
+        for file_path in (self._pyproject_file, self._app_config_file, self._db_schema_file):
             if not file_path.exists():
                 raise FileNotFoundError(
                     f"Required project file missing: {file_path}"
@@ -51,3 +52,7 @@ class ProjectPaths:
     @property
     def app_config_file(self) -> Path:
         return self._app_config_file
+
+    @property
+    def db_schema_file(self) -> Path:
+        return self._db_schema_file

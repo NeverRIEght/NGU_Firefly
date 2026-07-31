@@ -13,7 +13,8 @@ dependencies = [
     "numpy (==2.4.0)",
     "py-cpuinfo (==9.0.0)",
     "filelock (==3.20.3)",
-    "psutil (==7.2.2)"
+    "psutil (==7.2.2)",
+    "sqlalchemy (==2.0.51)"
 ]
 
 [dependency-groups]

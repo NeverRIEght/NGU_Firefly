@@ -1,10 +1,8 @@
 from enum import Enum
 
 
-class JobStage(str, Enum):
-    CREATED = "created"
-    METADATA_EXTRACTION = "metadata_extraction"
-    FILTERED_OUT = "filtered_out"
+class SegmentStatus(str, Enum):
+    DEFINED = "defined"
     IN_PROGRESS = "in_progress"
     FAILED = "failed" # Unable to encode or inefficient encode, use original
     COMPLETED = "completed"

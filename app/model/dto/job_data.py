@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from app.model.dto import JobStage
+from app.model.dto import Video, JobStage, Segment
 
 
 class JobData(BaseModel):

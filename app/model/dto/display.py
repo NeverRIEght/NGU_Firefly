@@ -5,8 +5,8 @@ from pydantic import BaseModel
 
 class Display(BaseModel):
     id: Optional[int] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
+    width_px: Optional[int] = None
+    height_px: Optional[int] = None
     display_aspect_ratio: Optional[str] = None
     pixel_aspect_ratio: Optional[str] = None
     pixel_format: Optional[str] = None

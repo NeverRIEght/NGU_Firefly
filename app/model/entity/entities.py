@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
+
 
 class FileEntity(Base):
     __tablename__ = "file"
@@ -10,6 +11,7 @@ class FileEntity(Base):
     absolute_path = Column(String, nullable=False)
     file_size_bytes = Column(Integer, nullable=False)
     sha256_hash = Column(String)
+
 
 class DisplayEntity(Base):
     __tablename__ = "display"
@@ -21,6 +23,7 @@ class DisplayEntity(Base):
     pixel_format = Column(String, nullable=False)
     chroma_sample_location = Column(String, nullable=False)
 
+
 class PlaybackEntity(Base):
     __tablename__ = "playback"
     id = Column(Integer, primary_key=True)
@@ -29,6 +32,7 @@ class PlaybackEntity(Base):
     avg_frame_rate = Column(String)
     r_frame_rate = Column(String)
 
+
 class EncodingEntity(Base):
     __tablename__ = "encoding"
     id = Column(Integer, primary_key=True)
@@ -36,11 +40,13 @@ class EncodingEntity(Base):
     preset = Column(String)
     encoder = Column(String)
 
+
 class CpuEntity(Base):
     __tablename__ = "cpu"
     id = Column(Integer, primary_key=True)
     cpu_name = Column(String, nullable=False)
     cpu_threads = Column(Integer, nullable=False)
+
 
 class EnvironmentEntity(Base):
     __tablename__ = "environment"
@@ -49,30 +55,54 @@ class EnvironmentEntity(Base):
     ffmpeg_version = Column(String, nullable=False)
     compression_engine_version = Column(Integer, nullable=False)
 
+
 class EvaluationMetricsEntity(Base):
     __tablename__ = "evaluation_metrics"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     version = Column(String)
 
+
 class JobStagesEntity(Base):
     __tablename__ = "job_stages"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
+
 
 class SegmentStatusesEntity(Base):
     __tablename__ = "segment_statuses"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
 
+
 class IterationStagesEntity(Base):
     __tablename__ = "iteration_stages"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
 
+
 class SchemaEntity(Base):
     __tablename__ = "schema"
     version = Column(Integer, primary_key=True)
+
+
+class HdrFormatEntity(Base):
+    __tablename__ = "hdr_format"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+
+
+class ColorStandardsEntity(Base):
+    __tablename__ = "color_standards"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+
+
+class ColorRangesEntity(Base):
+    __tablename__ = "color_ranges"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+
 
 class ColorEntity(Base):
     __tablename__ = "color"
@@ -86,20 +116,12 @@ class ColorEntity(Base):
     master_display = Column(String)
     dovi_profile = Column(String)
 
-class HdrFormatEntity(Base):
-    __tablename__ = "hdr_format"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    hdr_format = relationship("HdrFormatEntity")
+    color_primaries = relationship("ColorStandardsEntity", foreign_keys=[color_primaries_id])
+    color_trc = relationship("ColorStandardsEntity", foreign_keys=[color_trc_id])
+    colorspace = relationship("ColorStandardsEntity", foreign_keys=[colorspace_id])
+    color_range = relationship("ColorRangesEntity")
 
-class ColorStandardsEntity(Base):
-    __tablename__ = "color_standards"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-
-class ColorRangesEntity(Base):
-    __tablename__ = "color_ranges"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
 
 class EmbeddedMetadataEntity(Base):
     __tablename__ = "embedded_metadata"
@@ -109,13 +131,8 @@ class EmbeddedMetadataEntity(Base):
     source_video_sha256_hash = Column(String, nullable=False)
     environment_id = Column(Integer, ForeignKey("environment.id"), nullable=False)
 
-class JobEntity(Base):
-    __tablename__ = "job"
-    id = Column(Integer, primary_key=True)
-    source_video_id = Column(Integer, ForeignKey("video.id"), nullable=False)
-    stage_id = Column(Integer, ForeignKey("job_stages.id"), nullable=False)
-    created_datetime_utc = Column(DateTime, nullable=False)
-    total_time_seconds = Column(Float)
+    environment = relationship("EnvironmentEntity")
+
 
 class VideoEntity(Base):
     __tablename__ = "video"
@@ -127,6 +144,27 @@ class VideoEntity(Base):
     color_id = Column(Integer, ForeignKey("color.id"))
     embedded_metadata_id = Column(Integer, ForeignKey("embedded_metadata.id"))
 
+    file = relationship("FileEntity")
+    display = relationship("DisplayEntity")
+    playback = relationship("PlaybackEntity")
+    encoding = relationship("EncodingEntity")
+    color = relationship("ColorEntity")
+    embedded_metadata = relationship("EmbeddedMetadataEntity")
+
+
+class JobEntity(Base):
+    __tablename__ = "job"
+    id = Column(Integer, primary_key=True)
+    source_video_id = Column(Integer, ForeignKey("video.id"), nullable=False)
+    stage_id = Column(Integer, ForeignKey("job_stages.id"), nullable=False)
+    created_datetime_utc = Column(DateTime, nullable=False)
+    total_time_seconds = Column(Float)
+
+    source_video = relationship("VideoEntity")
+    stage = relationship("JobStagesEntity")
+    segments = relationship("SegmentEntity", back_populates="job", cascade="all, delete-orphan")
+
+
 class SegmentEntity(Base):
     __tablename__ = "segments"
     id = Column(Integer, primary_key=True)
@@ -136,16 +174,10 @@ class SegmentEntity(Base):
     status_id = Column(Integer, ForeignKey("segment_statuses.id"), nullable=False)
     total_time_seconds = Column(Float)
 
-class IterationEntity(Base):
-    __tablename__ = "iteration"
-    id = Column(Integer, primary_key=True)
-    segment_id = Column(Integer, ForeignKey("segments.id"), nullable=False)
-    stage_id = Column(Integer, ForeignKey("iteration_stages.id"), nullable=False)
-    video_id = Column(Integer, ForeignKey("video.id"), nullable=False)
-    cpu_id = Column(Integer, ForeignKey("cpu.id"), nullable=False)
-    environment_id = Column(Integer, ForeignKey("environment.id"), nullable=False)
-    execution_data_id = Column(Integer, ForeignKey("execution_data.id"), nullable=False)
-    crf = Column(Integer, nullable=False)
+    job = relationship("JobEntity", back_populates="segments")
+    status = relationship("SegmentStatusesEntity")
+    iterations = relationship("IterationEntity", back_populates="segment", cascade="all, delete-orphan")
+
 
 class ExecutionDataEntity(Base):
     __tablename__ = "execution_data"
@@ -158,9 +190,33 @@ class ExecutionDataEntity(Base):
     encoding_cpu_threads_used = Column(Integer, nullable=False)
     evaluation_cpu_threads_used = Column(Integer)
 
+
+class IterationEntity(Base):
+    __tablename__ = "iteration"
+    id = Column(Integer, primary_key=True)
+    segment_id = Column(Integer, ForeignKey("segments.id"), nullable=False)
+    stage_id = Column(Integer, ForeignKey("iteration_stages.id"), nullable=False)
+    video_id = Column(Integer, ForeignKey("video.id"), nullable=False)
+    cpu_id = Column(Integer, ForeignKey("cpu.id"), nullable=False)
+    environment_id = Column(Integer, ForeignKey("environment.id"), nullable=False)
+    execution_data_id = Column(Integer, ForeignKey("execution_data.id"), nullable=False)
+    crf = Column(Integer, nullable=False)
+
+    segment = relationship("SegmentEntity", back_populates="iterations")
+    stage = relationship("IterationStagesEntity")
+    video = relationship("VideoEntity")
+    cpu = relationship("CpuEntity")
+    environment = relationship("EnvironmentEntity")
+    execution_data = relationship("ExecutionDataEntity")
+    evaluations = relationship("EvaluationEntity", back_populates="iteration", cascade="all, delete-orphan")
+
+
 class EvaluationEntity(Base):
     __tablename__ = "evaluation"
     id = Column(Integer, primary_key=True)
     iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable=False)
     metric_id = Column(Integer, ForeignKey("evaluation_metrics.id"), nullable=False)
     score = Column(Float, nullable=False)
+
+    iteration = relationship("IterationEntity", back_populates="evaluations")
+    metric = relationship("EvaluationMetricsEntity")

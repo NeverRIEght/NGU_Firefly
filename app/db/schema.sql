@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS "iteration_stages" (
 
 CREATE TABLE IF NOT EXISTS "schema" (
 	"version" INTEGER NOT NULL
+    PRIMARY KEY("version")
 );
 
 CREATE TABLE IF NOT EXISTS "color" (

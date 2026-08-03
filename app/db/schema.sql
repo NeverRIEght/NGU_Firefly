@@ -76,8 +76,26 @@ CREATE TABLE IF NOT EXISTS "iteration_stages" (
 );
 
 CREATE TABLE IF NOT EXISTS "schema" (
-	"version" INTEGER NOT NULL
+	"version" INTEGER NOT NULL,
     PRIMARY KEY("version")
+);
+
+CREATE TABLE IF NOT EXISTS "hdr_format" (
+	"id" INTEGER NOT NULL,
+	"name" TEXT NOT NULL,
+	PRIMARY KEY("id")
+);
+
+CREATE TABLE IF NOT EXISTS "color_standards" (
+	"id" INTEGER NOT NULL,
+	"name" TEXT NOT NULL,
+	PRIMARY KEY("id")
+);
+
+CREATE TABLE IF NOT EXISTS "color_ranges" (
+	"id" INTEGER NOT NULL,
+	"name" TEXT NOT NULL,
+	PRIMARY KEY("id")
 );
 
 CREATE TABLE IF NOT EXISTS "color" (
@@ -90,35 +108,17 @@ CREATE TABLE IF NOT EXISTS "color" (
 	"max_cll" TEXT,
 	"master_display" TEXT,
 	"dovi_profile" TEXT,
-	PRIMARY KEY("id")
-);
-
-CREATE TABLE IF NOT EXISTS "hdr_format" (
-	"id" INTEGER NOT NULL,
-	"name" TEXT NOT NULL,
 	PRIMARY KEY("id"),
-	FOREIGN KEY ("id") REFERENCES "color"("hdr_format_id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION
-);
-
-CREATE TABLE IF NOT EXISTS "color_standards" (
-	"id" INTEGER NOT NULL,
-	"name" TEXT NOT NULL,
-	PRIMARY KEY("id"),
-	FOREIGN KEY ("id") REFERENCES "color"("color_primaries_id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("id") REFERENCES "color"("color_trc_id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("id") REFERENCES "color"("colorspace_id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION
-);
-
-CREATE TABLE IF NOT EXISTS "color_ranges" (
-	"id" INTEGER NOT NULL,
-	"name" TEXT NOT NULL,
-	PRIMARY KEY("id"),
-	FOREIGN KEY ("id") REFERENCES "color"("color_range_id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION
+    FOREIGN KEY ("hdr_format_id") REFERENCES "hdr_format"("id")
+    ON UPDATE NO ACTION ON DELETE NO ACTION,
+    FOREIGN KEY ("color_primaries_id") REFERENCES "color_standards"("id")
+    ON UPDATE NO ACTION ON DELETE NO ACTION,
+    FOREIGN KEY ("color_trc_id") REFERENCES "color_standards"("id")
+    ON UPDATE NO ACTION ON DELETE NO ACTION,
+    FOREIGN KEY ("colorspace_id") REFERENCES "color_standards"("id")
+    ON UPDATE NO ACTION ON DELETE NO ACTION,
+    FOREIGN KEY ("color_range_id") REFERENCES "color_ranges"("id")
+    ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
 CREATE TABLE IF NOT EXISTS "embedded_metadata" (
@@ -139,6 +139,8 @@ CREATE TABLE IF NOT EXISTS "job" (
 	"created_datetime_utc" DATETIME NOT NULL,
 	"total_time_seconds" REAL,
 	PRIMARY KEY("id"),
+    FOREIGN KEY ("source_video_id") REFERENCES "video"("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION,
 	FOREIGN KEY ("stage_id") REFERENCES "job_stages"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION
 );
@@ -163,8 +165,6 @@ CREATE TABLE IF NOT EXISTS "video" (
 	FOREIGN KEY ("color_id") REFERENCES "color"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION,
 	FOREIGN KEY ("embedded_metadata_id") REFERENCES "embedded_metadata"("id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("id") REFERENCES "job"("source_video_id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
@@ -180,6 +180,18 @@ CREATE TABLE IF NOT EXISTS "segments" (
 	ON UPDATE NO ACTION ON DELETE NO ACTION,
 	FOREIGN KEY ("job_id") REFERENCES "job"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+
+CREATE TABLE IF NOT EXISTS "execution_data" (
+	"id" INTEGER NOT NULL,
+	"ffmpeg_command_used" TEXT NOT NULL,
+	"finished_datetime_utc" DATETIME NOT NULL,
+	"encoding_time_seconds" REAL NOT NULL,
+	"evaluation_time_seconds" REAL,
+	"total_time_seconds" REAL,
+	"encoding_cpu_threads_used" INTEGER NOT NULL,
+	"evaluation_cpu_threads_used" INTEGER,
+	PRIMARY KEY("id")
 );
 
 CREATE TABLE IF NOT EXISTS "iteration" (
@@ -201,20 +213,8 @@ CREATE TABLE IF NOT EXISTS "iteration" (
 	FOREIGN KEY ("environment_id") REFERENCES "environment"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION,
 	FOREIGN KEY ("stage_id") REFERENCES "iteration_stages"("id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION
-);
-
-CREATE TABLE IF NOT EXISTS "execution_data" (
-	"id" INTEGER NOT NULL,
-	"ffmpeg_command_used" TEXT NOT NULL,
-	"finished_datetime_utc" DATETIME NOT NULL,
-	"encoding_time_seconds" REAL NOT NULL,
-	"evaluation_time_seconds" REAL,
-	"total_time_seconds" REAL,
-	"encoding_cpu_threads_used" INTEGER NOT NULL,
-	"evaluation_cpu_threads_used" INTEGER,
-	PRIMARY KEY("id"),
-	FOREIGN KEY ("id") REFERENCES "iteration"("execution_data_id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION,
+    FOREIGN KEY ("execution_data_id") REFERENCES "execution_data"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 

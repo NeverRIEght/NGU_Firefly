@@ -6,7 +6,6 @@ from app.model.mapper.abstract_mapper import AbstractMapper
 
 
 class FileMapper(AbstractMapper[File, FileEntity]):
-
     @staticmethod
     def to_entity(dto: File) -> FileEntity:
         return FileEntity(

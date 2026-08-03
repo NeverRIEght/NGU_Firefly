@@ -1,222 +1,240 @@
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
-from sqlalchemy.orm import declarative_base, relationship
+from __future__ import annotations
 
-Base = declarative_base()
+from datetime import datetime
+
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 class FileEntity(Base):
     __tablename__ = "file"
-    id = Column(Integer, primary_key=True)
-    file_name = Column(String, nullable=False)
-    absolute_path = Column(String, nullable=False)
-    file_size_bytes = Column(Integer, nullable=False)
-    sha256_hash = Column(String)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    file_name: Mapped[str] = mapped_column(String, nullable=False)
+    absolute_path: Mapped[str] = mapped_column(String, nullable=False)
+    file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    sha256_hash: Mapped[str | None] = mapped_column(String)
 
 
 class DisplayEntity(Base):
     __tablename__ = "display"
-    id = Column(Integer, primary_key=True)
-    width_px = Column(Integer, nullable=False)
-    height_px = Column(Integer, nullable=False)
-    display_aspect_ratio = Column(String, nullable=False)
-    pixel_aspect_ratio = Column(String, nullable=False)
-    pixel_format = Column(String, nullable=False)
-    chroma_sample_location = Column(String, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    width_px: Mapped[int] = mapped_column(Integer, nullable=False)
+    height_px: Mapped[int] = mapped_column(Integer, nullable=False)
+    display_aspect_ratio: Mapped[str] = mapped_column(String, nullable=False)
+    pixel_aspect_ratio: Mapped[str] = mapped_column(String, nullable=False)
+    pixel_format: Mapped[str] = mapped_column(String, nullable=False)
+    chroma_sample_location: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class PlaybackEntity(Base):
     __tablename__ = "playback"
-    id = Column(Integer, primary_key=True)
-    duration_seconds = Column(Float, nullable=False)
-    frames_counted = Column(Integer)
-    avg_frame_rate = Column(String)
-    r_frame_rate = Column(String)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    duration_seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    frames_counted: Mapped[int | None] = mapped_column(Integer)
+    avg_frame_rate: Mapped[str | None] = mapped_column(String)
+    r_frame_rate: Mapped[str | None] = mapped_column(String)
 
 
 class EncodingEntity(Base):
     __tablename__ = "encoding"
-    id = Column(Integer, primary_key=True)
-    codec = Column(String, nullable=False)
-    preset = Column(String)
-    encoder = Column(String)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    codec: Mapped[str] = mapped_column(String, nullable=False)
+    preset: Mapped[str | None] = mapped_column(String)
+    encoder: Mapped[str | None] = mapped_column(String)
 
 
 class CpuEntity(Base):
     __tablename__ = "cpu"
-    id = Column(Integer, primary_key=True)
-    cpu_name = Column(String, nullable=False)
-    cpu_threads = Column(Integer, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    cpu_name: Mapped[str] = mapped_column(String, nullable=False)
+    cpu_threads: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class EnvironmentEntity(Base):
     __tablename__ = "environment"
-    id = Column(Integer, primary_key=True)
-    firefly_version = Column(String, nullable=False)
-    ffmpeg_version = Column(String, nullable=False)
-    compression_engine_version = Column(Integer, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    firefly_version: Mapped[str] = mapped_column(String, nullable=False)
+    ffmpeg_version: Mapped[str] = mapped_column(String, nullable=False)
+    compression_engine_version: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class EvaluationMetricsEntity(Base):
     __tablename__ = "evaluation_metrics"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    version = Column(String)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    version: Mapped[str | None] = mapped_column(String)
 
 
 class JobStagesEntity(Base):
     __tablename__ = "job_stages"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class SegmentStatusesEntity(Base):
     __tablename__ = "segment_statuses"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class IterationStagesEntity(Base):
     __tablename__ = "iteration_stages"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class SchemaEntity(Base):
     __tablename__ = "schema"
-    version = Column(Integer, primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
 
 
 class HdrFormatEntity(Base):
     __tablename__ = "hdr_format"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class ColorStandardsEntity(Base):
     __tablename__ = "color_standards"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class ColorRangesEntity(Base):
     __tablename__ = "color_ranges"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class ColorEntity(Base):
     __tablename__ = "color"
-    id = Column(Integer, primary_key=True)
-    hdr_format_id = Column(Integer, ForeignKey("hdr_format.id"))
-    color_primaries_id = Column(Integer, ForeignKey("color_standards.id"))
-    color_trc_id = Column(Integer, ForeignKey("color_standards.id"))
-    colorspace_id = Column(Integer, ForeignKey("color_standards.id"))
-    color_range_id = Column(Integer, ForeignKey("color_ranges.id"))
-    max_cll = Column(String)
-    master_display = Column(String)
-    dovi_profile = Column(String)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    hdr_format_id: Mapped[int | None] = mapped_column(ForeignKey("hdr_format.id"))
+    color_primaries_id: Mapped[int | None] = mapped_column(ForeignKey("color_standards.id"))
+    color_trc_id: Mapped[int | None] = mapped_column(ForeignKey("color_standards.id"))
+    colorspace_id: Mapped[int | None] = mapped_column(ForeignKey("color_standards.id"))
+    color_range_id: Mapped[int | None] = mapped_column(ForeignKey("color_ranges.id"))
+    max_cll: Mapped[str | None] = mapped_column(String)
+    master_display: Mapped[str | None] = mapped_column(String)
+    dovi_profile: Mapped[str | None] = mapped_column(String)
 
-    hdr_format = relationship("HdrFormatEntity")
-    color_primaries = relationship("ColorStandardsEntity", foreign_keys=[color_primaries_id])
-    color_trc = relationship("ColorStandardsEntity", foreign_keys=[color_trc_id])
-    colorspace = relationship("ColorStandardsEntity", foreign_keys=[colorspace_id])
-    color_range = relationship("ColorRangesEntity")
+    hdr_format: Mapped[HdrFormatEntity | None] = relationship()
+    color_primaries: Mapped[ColorStandardsEntity | None] = relationship(
+        foreign_keys=[color_primaries_id]
+    )
+    color_trc: Mapped[ColorStandardsEntity | None] = relationship(
+        foreign_keys=[color_trc_id]
+    )
+    colorspace: Mapped[ColorStandardsEntity | None] = relationship(
+        foreign_keys=[colorspace_id]
+    )
+    color_range: Mapped[ColorRangesEntity | None] = relationship()
 
 
 class EmbeddedMetadataEntity(Base):
     __tablename__ = "embedded_metadata"
-    id = Column(Integer, primary_key=True)
-    encodes_count = Column(Integer, nullable=False)
-    last_encode_datetime_utc = Column(DateTime, nullable=False)
-    source_video_sha256_hash = Column(String, nullable=False)
-    environment_id = Column(Integer, ForeignKey("environment.id"), nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    encodes_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    last_encode_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    source_video_sha256_hash: Mapped[str] = mapped_column(String, nullable=False)
+    environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"), nullable=False)
 
-    environment = relationship("EnvironmentEntity")
+    environment: Mapped[EnvironmentEntity] = relationship()
 
 
 class VideoEntity(Base):
     __tablename__ = "video"
-    id = Column(Integer, primary_key=True)
-    file_id = Column(Integer, ForeignKey("file.id"))
-    display_id = Column(Integer, ForeignKey("display.id"))
-    playback_id = Column(Integer, ForeignKey("playback.id"))
-    encoding_id = Column(Integer, ForeignKey("encoding.id"))
-    color_id = Column(Integer, ForeignKey("color.id"))
-    embedded_metadata_id = Column(Integer, ForeignKey("embedded_metadata.id"))
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    file_id: Mapped[int | None] = mapped_column(ForeignKey("file.id"))
+    display_id: Mapped[int | None] = mapped_column(ForeignKey("display.id"))
+    playback_id: Mapped[int | None] = mapped_column(ForeignKey("playback.id"))
+    encoding_id: Mapped[int | None] = mapped_column(ForeignKey("encoding.id"))
+    color_id: Mapped[int | None] = mapped_column(ForeignKey("color.id"))
+    embedded_metadata_id: Mapped[int | None] = mapped_column(ForeignKey("embedded_metadata.id"))
 
-    file = relationship("FileEntity")
-    display = relationship("DisplayEntity")
-    playback = relationship("PlaybackEntity")
-    encoding = relationship("EncodingEntity")
-    color = relationship("ColorEntity")
-    embedded_metadata = relationship("EmbeddedMetadataEntity")
+    file: Mapped[FileEntity | None] = relationship()
+    display: Mapped[DisplayEntity | None] = relationship()
+    playback: Mapped[PlaybackEntity | None] = relationship()
+    encoding: Mapped[EncodingEntity | None] = relationship()
+    color: Mapped[ColorEntity | None] = relationship()
+    embedded_metadata: Mapped[EmbeddedMetadataEntity | None] = relationship()
 
 
 class JobEntity(Base):
     __tablename__ = "job"
-    id = Column(Integer, primary_key=True)
-    source_video_id = Column(Integer, ForeignKey("video.id"), nullable=False)
-    stage_id = Column(Integer, ForeignKey("job_stages.id"), nullable=False)
-    created_datetime_utc = Column(DateTime, nullable=False)
-    total_time_seconds = Column(Float)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    source_video_id: Mapped[int] = mapped_column(ForeignKey("video.id"), nullable=False)
+    stage_id: Mapped[int] = mapped_column(ForeignKey("job_stages.id"), nullable=False)
+    created_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    total_time_seconds: Mapped[float | None] = mapped_column(Float)
 
-    source_video = relationship("VideoEntity")
-    stage = relationship("JobStagesEntity")
-    segments = relationship("SegmentEntity", back_populates="job", cascade="all, delete-orphan")
+    source_video: Mapped[VideoEntity] = relationship()
+    stage: Mapped[JobStagesEntity] = relationship()
+    segments: Mapped[list[SegmentEntity]] = relationship(
+        back_populates="job", cascade="all, delete-orphan"
+    )
 
 
 class SegmentEntity(Base):
     __tablename__ = "segments"
-    id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, ForeignKey("job.id"), nullable=False)
-    from_frame = Column(Integer, nullable=False)
-    to_frame = Column(Integer, nullable=False)
-    status_id = Column(Integer, ForeignKey("segment_statuses.id"), nullable=False)
-    total_time_seconds = Column(Float)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("job.id"), nullable=False)
+    from_frame: Mapped[int] = mapped_column(Integer, nullable=False)
+    to_frame: Mapped[int] = mapped_column(Integer, nullable=False)
+    status_id: Mapped[int] = mapped_column(ForeignKey("segment_statuses.id"), nullable=False)
+    total_time_seconds: Mapped[float | None] = mapped_column(Float)
 
-    job = relationship("JobEntity", back_populates="segments")
-    status = relationship("SegmentStatusesEntity")
-    iterations = relationship("IterationEntity", back_populates="segment", cascade="all, delete-orphan")
+    job: Mapped[JobEntity] = relationship(back_populates="segments")
+    status: Mapped[SegmentStatusesEntity] = relationship()
+    iterations: Mapped[list[IterationEntity]] = relationship(
+        back_populates="segment", cascade="all, delete-orphan"
+    )
 
 
 class ExecutionDataEntity(Base):
     __tablename__ = "execution_data"
-    id = Column(Integer, primary_key=True)
-    ffmpeg_command_used = Column(String, nullable=False)
-    finished_datetime_utc = Column(DateTime, nullable=False)
-    encoding_time_seconds = Column(Float, nullable=False)
-    evaluation_time_seconds = Column(Float)
-    total_time_seconds = Column(Float)
-    encoding_cpu_threads_used = Column(Integer, nullable=False)
-    evaluation_cpu_threads_used = Column(Integer)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    ffmpeg_command_used: Mapped[str] = mapped_column(String, nullable=False)
+    finished_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    encoding_time_seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    evaluation_time_seconds: Mapped[float | None] = mapped_column(Float)
+    total_time_seconds: Mapped[float | None] = mapped_column(Float)
+    encoding_cpu_threads_used: Mapped[int] = mapped_column(Integer, nullable=False)
+    evaluation_cpu_threads_used: Mapped[int | None] = mapped_column(Integer)
 
 
 class IterationEntity(Base):
     __tablename__ = "iteration"
-    id = Column(Integer, primary_key=True)
-    segment_id = Column(Integer, ForeignKey("segments.id"), nullable=False)
-    stage_id = Column(Integer, ForeignKey("iteration_stages.id"), nullable=False)
-    video_id = Column(Integer, ForeignKey("video.id"), nullable=False)
-    cpu_id = Column(Integer, ForeignKey("cpu.id"), nullable=False)
-    environment_id = Column(Integer, ForeignKey("environment.id"), nullable=False)
-    execution_data_id = Column(Integer, ForeignKey("execution_data.id"), nullable=False)
-    crf = Column(Integer, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    segment_id: Mapped[int] = mapped_column(ForeignKey("segments.id"), nullable=False)
+    stage_id: Mapped[int] = mapped_column(ForeignKey("iteration_stages.id"), nullable=False)
+    video_id: Mapped[int] = mapped_column(ForeignKey("video.id"), nullable=False)
+    cpu_id: Mapped[int] = mapped_column(ForeignKey("cpu.id"), nullable=False)
+    environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"), nullable=False)
+    execution_data_id: Mapped[int] = mapped_column(ForeignKey("execution_data.id"), nullable=False)
+    crf: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    segment = relationship("SegmentEntity", back_populates="iterations")
-    stage = relationship("IterationStagesEntity")
-    video = relationship("VideoEntity")
-    cpu = relationship("CpuEntity")
-    environment = relationship("EnvironmentEntity")
-    execution_data = relationship("ExecutionDataEntity")
-    evaluations = relationship("EvaluationEntity", back_populates="iteration", cascade="all, delete-orphan")
+    segment: Mapped[SegmentEntity] = relationship(back_populates="iterations")
+    stage: Mapped[IterationStagesEntity] = relationship()
+    video: Mapped[VideoEntity] = relationship()
+    cpu: Mapped[CpuEntity] = relationship()
+    environment: Mapped[EnvironmentEntity] = relationship()
+    execution_data: Mapped[ExecutionDataEntity] = relationship()
+    evaluations: Mapped[list[EvaluationEntity]] = relationship(
+        back_populates="iteration", cascade="all, delete-orphan"
+    )
 
 
 class EvaluationEntity(Base):
     __tablename__ = "evaluation"
-    id = Column(Integer, primary_key=True)
-    iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable=False)
-    metric_id = Column(Integer, ForeignKey("evaluation_metrics.id"), nullable=False)
-    score = Column(Float, nullable=False)
+    id: Mapped[int | None] = mapped_column(primary_key=True)
+    iteration_id: Mapped[int] = mapped_column(ForeignKey("iteration.id"), nullable=False)
+    metric_id: Mapped[int] = mapped_column(ForeignKey("evaluation_metrics.id"), nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
 
-    iteration = relationship("IterationEntity", back_populates="evaluations")
-    metric = relationship("EvaluationMetricsEntity")
+    iteration: Mapped[IterationEntity] = relationship(back_populates="evaluations")
+    metric: Mapped[EvaluationMetricsEntity] = relationship()

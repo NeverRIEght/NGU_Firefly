@@ -200,11 +200,19 @@ class ExecutionDataEntity(Base):
     id: Mapped[int | None] = mapped_column(primary_key=True)
     ffmpeg_command_used: Mapped[str] = mapped_column(String, nullable=False)
     finished_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    encoding_time_seconds: Mapped[float] = mapped_column(Float, nullable=False)
-    evaluation_time_seconds: Mapped[float | None] = mapped_column(Float)
-    total_time_seconds: Mapped[float | None] = mapped_column(Float)
+    encoding_wall_time_seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    evaluation_wall_time_seconds: Mapped[float | None] = mapped_column(Float)
+    encoding_cpu_time_seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    evaluation_cpu_time_seconds: Mapped[float | None] = mapped_column(Float)
+    total_wall_time_seconds: Mapped[float | None] = mapped_column(Float)
+    total_cpu_time_seconds: Mapped[float | None] = mapped_column(Float)
     encoding_cpu_threads_used: Mapped[int] = mapped_column(Integer, nullable=False)
     evaluation_cpu_threads_used: Mapped[int | None] = mapped_column(Integer)
+    encoding_cpu_id: Mapped[int] = mapped_column(ForeignKey("cpu.id"), nullable=False)
+    evaluation_cpu_id: Mapped[int | None] = mapped_column(ForeignKey("cpu.id"))
+
+    encoding_cpu: Mapped[CpuEntity] = relationship(foreign_keys=[encoding_cpu_id])
+    evaluation_cpu: Mapped[CpuEntity | None] = relationship(foreign_keys=[evaluation_cpu_id])
 
 
 class IterationEntity(Base):
@@ -213,7 +221,6 @@ class IterationEntity(Base):
     segment_id: Mapped[int] = mapped_column(ForeignKey("segments.id"), nullable=False)
     stage_id: Mapped[int] = mapped_column(ForeignKey("iteration_stages.id"), nullable=False)
     video_id: Mapped[int] = mapped_column(ForeignKey("video.id"), nullable=False)
-    cpu_id: Mapped[int] = mapped_column(ForeignKey("cpu.id"), nullable=False)
     environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"), nullable=False)
     execution_data_id: Mapped[int] = mapped_column(ForeignKey("execution_data.id"), nullable=False)
     crf: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -221,7 +228,6 @@ class IterationEntity(Base):
     segment: Mapped[SegmentEntity] = relationship(back_populates="iterations")
     stage: Mapped[IterationStagesEntity] = relationship()
     video: Mapped[VideoEntity] = relationship()
-    cpu: Mapped[CpuEntity] = relationship()
     environment: Mapped[EnvironmentEntity] = relationship()
     execution_data: Mapped[ExecutionDataEntity] = relationship()
     evaluations: Mapped[list[EvaluationEntity]] = relationship(

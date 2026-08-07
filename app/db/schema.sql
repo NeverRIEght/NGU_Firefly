@@ -186,12 +186,27 @@ CREATE TABLE IF NOT EXISTS "execution_data" (
 	"id" INTEGER NOT NULL,
 	"ffmpeg_command_used" TEXT NOT NULL,
 	"finished_datetime_utc" DATETIME NOT NULL,
-	"encoding_time_seconds" REAL NOT NULL,
-	"evaluation_time_seconds" REAL,
-	"total_time_seconds" REAL,
+
+    "encoding_wall_time_seconds" REAL NOT NULL,
+    "evaluation_wall_time_seconds" REAL,
+
+	"encoding_cpu_time_seconds" REAL NOT NULL,
+    "evaluation_cpu_time_seconds" REAL,
+
+	"total_wall_time_seconds" REAL,
+	"total_cpu_time_seconds" REAL,
+
 	"encoding_cpu_threads_used" INTEGER NOT NULL,
 	"evaluation_cpu_threads_used" INTEGER,
-	PRIMARY KEY("id")
+
+    "encoding_cpu_id" INTEGER NOT NULL,
+    "evaluation_cpu_id" INTEGER,
+
+	PRIMARY KEY("id"),
+    FOREIGN KEY ("encoding_cpu_id") REFERENCES "cpu"("id")
+    ON UPDATE NO ACTION ON DELETE NO ACTION,
+    FOREIGN KEY ("evaluation_cpu_id") REFERENCES "cpu"("id")
+    ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
 CREATE TABLE IF NOT EXISTS "iteration" (
@@ -199,7 +214,6 @@ CREATE TABLE IF NOT EXISTS "iteration" (
 	"segment_id" INTEGER NOT NULL,
 	"stage_id" INTEGER NOT NULL,
 	"video_id" INTEGER NOT NULL,
-	"cpu_id" INTEGER NOT NULL,
 	"environment_id" INTEGER NOT NULL,
 	"execution_data_id" INTEGER NOT NULL,
 	"crf" INTEGER NOT NULL,
@@ -207,8 +221,6 @@ CREATE TABLE IF NOT EXISTS "iteration" (
 	FOREIGN KEY ("segment_id") REFERENCES "segments"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION,
 	FOREIGN KEY ("video_id") REFERENCES "video"("id")
-	ON UPDATE NO ACTION ON DELETE NO ACTION,
-	FOREIGN KEY ("cpu_id") REFERENCES "cpu"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION,
 	FOREIGN KEY ("environment_id") REFERENCES "environment"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION,

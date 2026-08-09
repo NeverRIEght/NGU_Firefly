@@ -45,8 +45,8 @@ def calculate_vmaf(
             app_config = ConfigManager.get_config()
 
             model_name = _get_optimal_model_name(
-                    width=source_video_attributes.width_px,
-                    height=source_video_attributes.height_px
+                width=source_video_attributes.width_px,
+                height=source_video_attributes.height_px
             )
 
             model_path = get_vmaf_model_path(model_name)
@@ -95,25 +95,7 @@ def calculate_vmaf(
                     ]
 
                     log.debug(f"Running VMAF (CWD: {os.getcwd()}): {' '.join(cmd)}")
-                    process = subprocess.Popen(
-                            cmd,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            text=True,
-                            bufsize=1
-                    )
-
-                    if not app_config.disable_resources_monitoring:
-                        os_resources_utils.set_process_priority(process, app_config.vmaf_process_priority)
-
-                    while process.poll() is None:
-                        if not app_config.disable_resources_monitoring:
-                            offload_if_memory_low(process)
-                        time.sleep(app_config.ram_monitoring_interval_seconds)
-
-                    if process.returncode != 0:
-                        _, stderr = process.communicate()
-                        raise RuntimeError(f"VMAF FFmpeg failed: {stderr}")
+                    _run_vmaf_process(cmd, app_config)
 
                     with open(log_param, 'r') as f:
                         json_data = json.load(f)
@@ -130,10 +112,50 @@ def calculate_vmaf(
                     raise RuntimeError(f"VMAF failure: {e}")
                 finally:
                     os.chdir(old_cwd)
-                    os_resources_utils.terminate_process_safely(process)
                     file_utils.delete_file(Path(log_filename))
 
                 return float(json_data["pooled_metrics"]["vmaf"]["mean"])
+
+
+def _run_vmaf_process(cmd: list[str], app_config) -> None:
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1
+    )
+
+    if not app_config.disable_resources_monitoring:
+        os_resources_utils.set_process_priority(process, app_config.vmaf_process_priority)
+
+    assert process.stderr is not None
+
+    last_ram_check_time = time.perf_counter()
+
+    try:
+        while True:
+            line = process.stderr.readline()
+            if not line and process.poll() is not None:
+                break
+
+            if line:
+                # Progress will be parsed here in future
+                pass
+
+            if not app_config.disable_resources_monitoring:
+                current_time = time.perf_counter()
+                if current_time - last_ram_check_time >= app_config.ram_monitoring_interval_seconds:
+                    offload_if_memory_low(process)
+                    last_ram_check_time = current_time
+
+        if process.returncode != 0:
+            stderr_remainder = process.stderr.read()
+            raise RuntimeError(f"VMAF FFmpeg failed with exit code {process.returncode}: {stderr_remainder}")
+
+    except Exception:
+        os_resources_utils.terminate_process_safely(process)
+        raise
 
 
 def _get_optimal_model_name(width: int, height: int) -> str:

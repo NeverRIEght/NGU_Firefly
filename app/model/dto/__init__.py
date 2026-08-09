@@ -13,7 +13,7 @@ from app.model.dto.file import File
 from app.model.dto.hdr_format import HdrFormat
 from app.model.dto.iteration import Iteration
 from app.model.dto.iteration_stage import IterationStage
-from app.model.dto.job_data import JobData
+from app.model.dto.job import Job
 from app.model.dto.job_stage import JobStage
 from app.model.dto.playback import Playback
 from app.model.dto.segment import Segment
@@ -22,4 +22,4 @@ from app.model.dto.video import Video
 
 __all__ = ["Color", "ColorRange", "ColorStandard", "Cpu", "Display", "EmbeddedMetadata", "Encoding", "Environment",
            "Evaluation", "EvaluationMetric", "ExecutionData", "File", "HdrFormat", "Iteration", "IterationStage",
-           "JobData", "JobStage", "Playback", "Segment", "SegmentStatus", "Video"]
+           "Job", "JobStage", "Playback", "Segment", "SegmentStatus", "Video"]

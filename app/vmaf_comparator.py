@@ -1,8 +1,8 @@
 import json
 import logging
-import os
 import subprocess
 import time
+import uuid
 from pathlib import Path
 
 from app import file_utils
@@ -12,6 +12,7 @@ from app.model.json.video_attributes import VideoAttributes
 from app.os_resources import os_resources_utils
 from app.os_resources.exceptions import LowResourcesException
 from app.os_resources.os_resources_utils import offload_if_memory_low
+from app.project_paths import ProjectPaths
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +32,14 @@ def calculate_vmaf(
     - Frame-accurate comparison
     - No intermediate files created
 
+    During the process, videos are normalized to:
+    - yuv420p
+    - bt709
+    - progressive
+    - same resolution & fps (taken from reference)
+
+    ...which allows to avoid colospace mismatches, container metadata lies, and VMAF undefined behavior.
+
     Requirements:
     - ffmpeg built with libvmaf
     """
@@ -41,32 +50,17 @@ def calculate_vmaf(
                 raise FileNotFoundError(f"Reference file not found: {source_video_path}")
             if not encoded_video_path.is_file():
                 raise FileNotFoundError(f"Distorted file not found: {encoded_video_path}")
+            vmaf_models_dir = ProjectPaths.get_instance().vmaf_models_dir
 
-            app_config = ConfigManager.get_config()
-
-            model_name = _get_optimal_model_name(
-                    width=source_video_attributes.width_px,
-                    height=source_video_attributes.height_px
+            model_path = _get_optimal_model_path(
+                width=source_video_attributes.width_px,
+                height=source_video_attributes.height_px
             )
 
-            model_path = get_vmaf_model_path(model_name)
+            log_filename = f"vmaf_log_{uuid.uuid4().hex}.json"
+            log_file_path = vmaf_models_dir / log_filename
 
-            log_filename = f"vmaf_log_{int(time.time())}.json"
-            with LockManager.acquire_file_operation_lock(Path(log_filename), LockMode.EXCLUSIVE):
-                old_cwd = os.getcwd()
-                os.chdir(model_path.parent)
-
-                # We explicitly normalize EVERYTHING to:
-                # - yuv420p
-                # - bt709
-                # - progressive
-                # - same resolution & fps (taken from reference)
-                #
-                # This avoids:
-                # - colorspace mismatches
-                # - container metadata lies
-                # - VMAF undefined behavior
-
+            with LockManager.acquire_file_operation_lock(log_file_path, LockMode.EXCLUSIVE):
                 log.info("Using %d threads for VMAF calculation.", cpu_threads_count)
 
                 try:
@@ -94,28 +88,10 @@ def calculate_vmaf(
                         "-"
                     ]
 
-                    log.debug(f"Running VMAF (CWD: {os.getcwd()}): {' '.join(cmd)}")
-                    process = subprocess.Popen(
-                            cmd,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            text=True,
-                            bufsize=1
-                    )
+                    log.debug(f"Running VMAF (CWD: {vmaf_models_dir}): {' '.join(cmd)}")
+                    _run_vmaf_process(cmd=cmd, process_working_directory=vmaf_models_dir)
 
-                    if not app_config.disable_resources_monitoring:
-                        os_resources_utils.set_process_priority(process, app_config.vmaf_process_priority)
-
-                    while process.poll() is None:
-                        if not app_config.disable_resources_monitoring:
-                            offload_if_memory_low(process)
-                        time.sleep(app_config.ram_monitoring_interval_seconds)
-
-                    if process.returncode != 0:
-                        _, stderr = process.communicate()
-                        raise RuntimeError(f"VMAF FFmpeg failed: {stderr}")
-
-                    with open(log_param, 'r') as f:
+                    with open(log_file_path, 'r') as f:
                         json_data = json.load(f)
                 except LowResourcesException:
                     raise LowResourcesException("VMAF calculation stopped due to low system resources.")
@@ -129,11 +105,15 @@ def calculate_vmaf(
                     log.exception(f"VMAF calculation failed: {str(e)}")
                     raise RuntimeError(f"VMAF failure: {e}")
                 finally:
-                    os.chdir(old_cwd)
-                    os_resources_utils.terminate_process_safely(process)
-                    file_utils.delete_file(Path(log_filename))
+                    file_utils.delete_file(log_file_path)
 
                 return float(json_data["pooled_metrics"]["vmaf"]["mean"])
+
+
+def _get_optimal_model_path(width: int, height: int) -> Path:
+    model_name = _get_optimal_model_name(width, height)
+    model_path = _get_vmaf_model_path(model_name)
+    return model_path
 
 
 def _get_optimal_model_name(width: int, height: int) -> str:
@@ -148,12 +128,55 @@ def _get_optimal_model_name(width: int, height: int) -> str:
     return "vmaf_v0.6.1neg.json"
 
 
-def get_vmaf_model_path(model_filename: str) -> Path:
-    app_directory = Path(__file__).parent.resolve()
+def _get_vmaf_model_path(model_filename: str) -> Path:
+    project_paths = ProjectPaths.get_instance()
 
-    model_path = app_directory.parent / "vmaf_models" / model_filename
+    model_path = project_paths.vmaf_models_dir / model_filename
 
     if not model_path.exists():
         raise FileNotFoundError(f"VMAF model not found at: {model_path}")
 
     return model_path
+
+
+def _run_vmaf_process(cmd: list[str], process_working_directory: Path) -> None:
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+        cwd=process_working_directory
+    )
+    app_config = ConfigManager.get_config()
+
+    if not app_config.disable_resources_monitoring:
+        os_resources_utils.set_process_priority(process, app_config.vmaf_process_priority)
+
+    assert process.stderr is not None
+
+    last_ram_check_time = time.perf_counter()
+
+    try:
+        while True:
+            line = process.stderr.readline()
+            if not line and process.poll() is not None:
+                break
+
+            if line:
+                # Progress will be parsed here in future
+                pass
+
+            if not app_config.disable_resources_monitoring:
+                current_time = time.perf_counter()
+                if current_time - last_ram_check_time >= app_config.ram_monitoring_interval_seconds:
+                    offload_if_memory_low(process)
+                    last_ram_check_time = current_time
+
+        if process.returncode != 0:
+            stderr_remainder = process.stderr.read()
+            raise RuntimeError(f"VMAF FFmpeg failed with exit code {process.returncode}: {stderr_remainder}")
+
+    except Exception:
+        os_resources_utils.terminate_process_safely(process)
+        raise

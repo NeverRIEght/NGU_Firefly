@@ -12,6 +12,8 @@ class ProjectPaths:
             return
 
         self._base_dir = self._find_base_dir()
+        self._vmaf_models_dir = self._base_dir / "vmaf_models"
+
         self._pyproject_file = self._base_dir / "pyproject.toml"
         self._app_config_file = self._base_dir / "app_config.toml"
         self._db_schema_file = self._base_dir / "app" / "db" / "schema.sql"
@@ -44,6 +46,10 @@ class ProjectPaths:
     @property
     def base_dir(self) -> Path:
         return self._base_dir
+
+    @property
+    def vmaf_models_dir(self) -> Path:
+        return self._vmaf_models_dir
 
     @property
     def pyproject_file(self) -> Path:

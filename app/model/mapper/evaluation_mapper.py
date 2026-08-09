@@ -7,11 +7,13 @@ from app.model.mapper.evaluation_metric_mapper import EvaluationMetricMapper
 class EvaluationMapper(AbstractMapper[Evaluation, EvaluationEntity]):
     @staticmethod
     def to_entity(dto: Evaluation) -> EvaluationEntity:
-        metric = EvaluationMetricMapper.to_entity(dto.metric) if dto.metric else None
+        metric = EvaluationMetricMapper.to_entity(
+            EvaluationMapper._get_required(dto.metric, "metric")
+        )
 
         return EvaluationEntity(
             id=dto.id,
-            metric=EvaluationMapper._get_required(metric, "metric"),
+            metric=metric,
             score=EvaluationMapper._get_required(dto.score, "score"),
         )
 

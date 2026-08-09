@@ -1,7 +1,7 @@
 from app.model.dto import EmbeddedMetadata
 from app.model.entity.entities import EmbeddedMetadataEntity
+from app.model.mapper import EnvironmentMapper
 from app.model.mapper.abstract_mapper import AbstractMapper
-from app.model.mapper.environment_mapper import EnvironmentMapper
 
 
 class EmbeddedMetadataMapper(AbstractMapper[EmbeddedMetadata, EmbeddedMetadataEntity]):

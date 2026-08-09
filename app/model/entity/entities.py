@@ -132,7 +132,9 @@ class ColorEntity(Base):
     colorspace: Mapped[ColorStandardsEntity | None] = relationship(
         foreign_keys=[colorspace_id]
     )
-    color_range: Mapped[ColorRangesEntity | None] = relationship()
+    color_range: Mapped[ColorRangesEntity | None] = relationship(
+        foreign_keys=[color_range_id]
+    )
 
 
 class EmbeddedMetadataEntity(Base):

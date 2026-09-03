@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config.config_manager import ConfigManager
+from app.db.cache import LookupCacheRegistry
 from app.model.entity.entities import Base
 
 
@@ -42,6 +43,8 @@ class DatabaseManager:
     def init_db(self):
         """Called once to init the db schema"""
         Base.metadata.create_all(bind=self._engine)
+        with self.get_session() as session:
+            LookupCacheRegistry.init_all(session)
 
     def get_session(self) -> Session:
         """Creates a separate session for the thread/operation."""

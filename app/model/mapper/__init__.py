@@ -1,7 +1,21 @@
 from app.model.mapper.abstract_mapper import AbstractMapper
-from app.model.mapper.mappers import ColorMapper, CpuMapper, DisplayMapper, EmbeddedMetadataMapper, EncodingMapper, \
-    EnvironmentMapper, EvaluationMapper, EvaluationMetricMapper, ExecutionDataMapper, FileMapper, IterationMapper, \
-    JobMapper, JobStageMapper, PlaybackMapper, SegmentMapper, VideoMapper
+from app.model.mapper.mappers import (
+    ColorMapper,
+    CpuMapper,
+    DisplayMapper,
+    EmbeddedMetadataMapper,
+    EncodingMapper,
+    EnvironmentMapper,
+    EvaluationMapper,
+    EvaluationMetricMapper,
+    ExecutionDataMapper,
+    FileMapper,
+    IterationMapper,
+    JobMapper,
+    PlaybackMapper,
+    SegmentMapper,
+    VideoMapper,
+)
 
 __all__ = [
     "AbstractMapper",
@@ -17,7 +31,6 @@ __all__ = [
     "FileMapper",
     "IterationMapper",
     "JobMapper",
-    "JobStageMapper",
     "PlaybackMapper",
     "SegmentMapper",
     "VideoMapper",

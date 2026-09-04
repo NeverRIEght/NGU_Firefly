@@ -1,90 +1,113 @@
 from pathlib import Path
 
-from app.db.cache import JobStagesCache
-from app.model.dto import Color, ColorRange, ColorStandard, Cpu, Display, EmbeddedMetadata, Encoding, Environment, \
-    Evaluation, EvaluationMetric, ExecutionData, HdrFormat, Iteration, Job, JobStage, Playback, Segment, Video
-from app.model.dto.file import File
-from app.model.dto.segment_status import SegmentStatus
-from app.model.entity.entities import ColorEntity, ColorRangesEntity, ColorStandardsEntity, CpuEntity, DisplayEntity, \
-    EmbeddedMetadataEntity, EncodingEntity, EnvironmentEntity, EvaluationEntity, EvaluationMetricsEntity, \
-    ExecutionDataEntity, FileEntity, HdrFormatEntity, IterationEntity, JobEntity, JobStagesEntity, PlaybackEntity, \
-    SegmentEntity, SegmentStatusesEntity, VideoEntity
-from app.model.mapper import DisplayMapper, EncodingMapper, FileMapper, PlaybackMapper
+from app.db.cache import LookupCacheRegistry
+from app.model.dto import (
+    Color,
+    Cpu,
+    Display,
+    EmbeddedMetadata,
+    Encoding,
+    Environment,
+    Evaluation,
+    EvaluationMetric,
+    ExecutionData,
+    File,
+    Iteration,
+    Job,
+    Playback,
+    Segment,
+    Video,
+)
+from app.model.entity.entities import (
+    ColorEntity,
+    CpuEntity,
+    DisplayEntity,
+    EmbeddedMetadataEntity,
+    EncodingEntity,
+    EnvironmentEntity,
+    EvaluationEntity,
+    EvaluationMetricsEntity,
+    ExecutionDataEntity,
+    FileEntity,
+    IterationEntity,
+    JobEntity,
+    PlaybackEntity,
+    SegmentEntity,
+    VideoEntity,
+)
 from app.model.mapper.abstract_mapper import AbstractMapper
-from app.model.mapper.video_mapper import VideoMapper
 
 
 class ColorMapper(AbstractMapper[Color, ColorEntity]):
     @staticmethod
     def to_entity(dto: Color) -> ColorEntity:
-        hdr_format = None
-        if dto.hdr_format is not None:
-            hdr_format = HdrFormatEntity(name=dto.hdr_format.value)
-
-        color_primaries = None
-        if dto.color_primaries is not None:
-            color_primaries = ColorStandardsEntity(name=dto.color_primaries.value)
-
-        color_trc = None
-        if dto.color_trc is not None:
-            color_trc = ColorStandardsEntity(name=dto.color_trc.value)
-
-        colorspace = None
-        if dto.colorspace is not None:
-            colorspace = ColorStandardsEntity(name=dto.colorspace.value)
-
-        color_range = None
-        if dto.color_range is not None:
-            color_range = ColorRangesEntity(name=dto.color_range.value)
+        cache = LookupCacheRegistry.get_instance()
 
         return ColorEntity(
             id=dto.id,
-            hdr_format=hdr_format,
-            color_primaries=color_primaries,
-            color_trc=color_trc,
-            colorspace=colorspace,
-            color_range=color_range,
+            hdr_format_id=(
+                cache.hdr_formats.get_id(dto.hdr_format)
+                if dto.hdr_format is not None
+                else None
+            ),
+            color_primaries_id=(
+                cache.color_standards.get_id(dto.color_primaries)
+                if dto.color_primaries is not None
+                else None
+            ),
+            color_trc_id=(
+                cache.color_standards.get_id(dto.color_trc)
+                if dto.color_trc is not None
+                else None
+            ),
+            colorspace_id=(
+                cache.color_standards.get_id(dto.colorspace)
+                if dto.colorspace is not None
+                else None
+            ),
+            color_range_id=(
+                cache.color_ranges.get_id(dto.color_range)
+                if dto.color_range is not None
+                else None
+            ),
             max_cll=dto.max_cll,
             master_display=dto.master_display,
-            dovi_profile=dto.dovi_profile
+            dovi_profile=dto.dovi_profile,
         )
 
     @staticmethod
     def to_dto(entity: ColorEntity) -> Color:
-        def _to_hdr(value):
-            if value is None or not value.name:
-                return None
-            try:
-                return HdrFormat(value.name)
-            except ValueError:
-                return None
-
-        def _to_standard(value):
-            if value is None or not value.name:
-                return None
-            try:
-                return ColorStandard(value.name)
-            except ValueError:
-                return None
-
-        def _to_range(value):
-            if value is None or not value.name:
-                return None
-            try:
-                return ColorRange(value.name)
-            except ValueError:
-                return None
-
+        cache = LookupCacheRegistry.get_instance()
         return Color(
             id=entity.id,
-            hdr_format=_to_hdr(entity.hdr_format),
-            color_primaries=_to_standard(entity.color_primaries),
-            color_trc=_to_standard(entity.color_trc),
-            colorspace=_to_standard(entity.colorspace),
-            color_range=_to_range(entity.color_range),
+            hdr_format=(
+                cache.hdr_formats.get_enum(entity.hdr_format_id)
+                if entity.hdr_format_id is not None
+                else None
+            ),
+            color_primaries=(
+                cache.color_standards.get_enum(entity.color_primaries_id)
+                if entity.color_primaries_id is not None
+                else None
+            ),
+            color_trc=(
+                cache.color_standards.get_enum(entity.color_trc_id)
+                if entity.color_trc_id is not None
+                else None
+            ),
+            colorspace=(
+                cache.color_standards.get_enum(entity.colorspace_id)
+                if entity.colorspace_id is not None
+                else None
+            ),
+            color_range=(
+                cache.color_ranges.get_enum(entity.color_range_id)
+                if entity.color_range_id is not None
+                else None
+            ),
             max_cll=entity.max_cll,
             master_display=entity.master_display,
-            dovi_profile=entity.dovi_profile
+            dovi_profile=entity.dovi_profile,
         )
 
 
@@ -111,17 +134,24 @@ class DisplayMapper(AbstractMapper[Display, DisplayEntity]):
     def to_entity(dto: Display) -> DisplayEntity:
         return DisplayEntity(
             id=dto.id,
-            width_px=DisplayMapper._get_required(dto.width_px, "width_px"),
-            height_px=DisplayMapper._get_required(dto.height_px, "height_px"),
-            display_aspect_ratio=DisplayMapper._get_required(
-                dto.display_aspect_ratio,
-                "display_aspect_ratio"
+            width_px=DisplayMapper._get_required(
+                dto.width_px, "width_px"
             ),
-            pixel_format=DisplayMapper._get_required(dto.pixel_format, "pixel_format"),
+            height_px=DisplayMapper._get_required(
+                dto.height_px, "height_px"
+            ),
+            display_aspect_ratio=DisplayMapper._get_required(
+                dto.display_aspect_ratio, "display_aspect_ratio"
+            ),
+            pixel_aspect_ratio=DisplayMapper._get_required(
+                dto.pixel_aspect_ratio, "pixel_aspect_ratio"
+            ),
+            pixel_format=DisplayMapper._get_required(
+                dto.pixel_format, "pixel_format"
+            ),
             chroma_sample_location=DisplayMapper._get_required(
-                dto.chroma_sample_location,
-                "chroma_sample_location"
-            )
+                dto.chroma_sample_location, "chroma_sample_location"
+            ),
         )
 
     @staticmethod
@@ -131,6 +161,7 @@ class DisplayMapper(AbstractMapper[Display, DisplayEntity]):
             width_px=entity.width_px,
             height_px=entity.height_px,
             display_aspect_ratio=entity.display_aspect_ratio,
+            pixel_aspect_ratio=entity.pixel_aspect_ratio,
             pixel_format=entity.pixel_format,
             chroma_sample_location=entity.chroma_sample_location
         )
@@ -146,18 +177,15 @@ class EmbeddedMetadataMapper(AbstractMapper[EmbeddedMetadata, EmbeddedMetadataEn
         return EmbeddedMetadataEntity(
             id=dto.id,
             encodes_count=EmbeddedMetadataMapper._get_required(
-                dto.encodes_count,
-                "encodes_count"
+                dto.encodes_count, "encodes_count"
             ),
             last_encode_datetime_utc=EmbeddedMetadataMapper._get_required(
-                dto.last_encode_datetime,
-                "last_encode_datetime"
+                dto.last_encode_datetime, "last_encode_datetime"
             ),
             source_video_sha256_hash=EmbeddedMetadataMapper._get_required(
-                dto.source_video_sha256_hash,
-                "source_video_sha256_hash"
+                dto.source_video_sha256_hash, "source_video_sha256_hash"
             ),
-            environment=environment
+            environment=environment,
         )
 
     @staticmethod
@@ -192,7 +220,6 @@ class EncodingMapper(AbstractMapper[Encoding, EncodingEntity]):
 
 
 class EnvironmentMapper(AbstractMapper[Environment, EnvironmentEntity]):
-
     @staticmethod
     def to_entity(dto: Environment) -> EnvironmentEntity:
         return EnvironmentEntity(
@@ -200,8 +227,7 @@ class EnvironmentMapper(AbstractMapper[Environment, EnvironmentEntity]):
             firefly_version=EnvironmentMapper._get_required(dto.firefly_version, "firefly_version"),
             ffmpeg_version=EnvironmentMapper._get_required(dto.ffmpeg_version, "ffmpeg_version"),
             compression_engine_version=EnvironmentMapper._get_required(
-                dto.compression_engine_version,
-                "compression_engine_version"
+                dto.compression_engine_version, "compression_engine_version"
             )
         )
 
@@ -266,32 +292,27 @@ class ExecutionDataMapper(AbstractMapper[ExecutionData, ExecutionDataEntity]):
         return ExecutionDataEntity(
             id=dto.id,
             ffmpeg_command_used=ExecutionDataMapper._get_required(
-                dto.ffmpeg_command_used,
-                "ffmpeg_command_used"
+                dto.ffmpeg_command_used, "ffmpeg_command_used"
             ),
             finished_datetime_utc=ExecutionDataMapper._get_required(
-                dto.finished_datetime_utc,
-                "finished_datetime_utc"
+                dto.finished_datetime_utc, "finished_datetime_utc"
             ),
             encoding_wall_time_seconds=ExecutionDataMapper._get_required(
-                dto.encoding_wall_time_seconds,
-                "encoding_wall_time_seconds"
+                dto.encoding_wall_time_seconds, "encoding_wall_time_seconds"
             ),
             evaluation_wall_time_seconds=dto.evaluation_wall_time_seconds,
             encoding_cpu_time_seconds=ExecutionDataMapper._get_required(
-                dto.encoding_cpu_time_seconds,
-                "encoding_cpu_time_seconds"
+                dto.encoding_cpu_time_seconds, "encoding_cpu_time_seconds"
             ),
             evaluation_cpu_time_seconds=dto.evaluation_cpu_time_seconds,
             total_wall_time_seconds=dto.total_wall_time_seconds,
             total_cpu_time_seconds=dto.total_cpu_time_seconds,
             encoding_cpu_threads_used=ExecutionDataMapper._get_required(
-                dto.encoding_cpu_threads_used,
-                "encoding_cpu_threads_used"
+                dto.encoding_cpu_threads_used, "encoding_cpu_threads_used"
             ),
             evaluation_cpu_threads_used=dto.evaluation_cpu_threads_used,
             encoding_cpu=encoding_cpu,
-            evaluation_cpu=evaluation_cpu
+            evaluation_cpu=evaluation_cpu,
         )
 
     @staticmethod
@@ -316,10 +337,11 @@ class ExecutionDataMapper(AbstractMapper[ExecutionData, ExecutionDataEntity]):
 class FileMapper(AbstractMapper[File, FileEntity]):
     @staticmethod
     def to_entity(dto: File) -> FileEntity:
+        absolute_path = FileMapper._get_required(dto.absolute_path, "absolute_path")
         return FileEntity(
             id=dto.id,
             file_name=FileMapper._get_required(dto.file_name, "file_name"),
-            absolute_path=str(dto.absolute_path),
+            absolute_path=str(absolute_path),
             file_size_bytes=FileMapper._get_required(dto.file_size_bytes, "file_size_bytes"),
             sha256_hash=dto.sha256_hash
         )
@@ -335,15 +357,63 @@ class FileMapper(AbstractMapper[File, FileEntity]):
         )
 
 
-# Iteration mapper between these classes
 class IterationMapper(AbstractMapper[Iteration, IterationEntity]):
     @staticmethod
     def to_entity(dto: Iteration) -> IterationEntity:
-        pass
+        stage_enum = IterationMapper._get_required(dto.stage, "stage")
+        stage_id = LookupCacheRegistry.get_instance().iteration_stages.get_id(stage_enum)
+        video = VideoMapper.to_entity(
+            IterationMapper._get_required(dto.video, "video")
+        )
+        environment = EnvironmentMapper.to_entity(
+            IterationMapper._get_required(dto.environment, "environment")
+        )
+        execution_data = ExecutionDataMapper.to_entity(
+            IterationMapper._get_required(dto.execution_data, "execution_data")
+        )
+
+        evaluation_entities: list[EvaluationEntity] = []
+        if dto.evaluations:
+            for eval_dto in dto.evaluations:
+                evaluation_entities.append(EvaluationMapper.to_entity(eval_dto))
+
+        return IterationEntity(
+            id=dto.id,
+            stage_id=stage_id,
+            video=video,
+            environment=environment,
+            execution_data=execution_data,
+            crf=IterationMapper._get_required(dto.crf, "crf"),
+            evaluations=evaluation_entities,
+        )
 
     @staticmethod
     def to_dto(entity: IterationEntity) -> Iteration:
-        pass
+        stage_dto = (
+            LookupCacheRegistry.get_instance().iteration_stages.get_enum(entity.stage_id)
+            if entity.stage_id is not None
+            else None
+        )
+        video_dto = VideoMapper.to_dto(entity.video) if entity.video else None
+        environment_dto = EnvironmentMapper.to_dto(entity.environment) if entity.environment else None
+        execution_data_dto = (
+            ExecutionDataMapper.to_dto(entity.execution_data) if entity.execution_data else None
+        )
+
+        evaluation_dtos: list[Evaluation] = []
+        if entity.evaluations:
+            for eval_entity in entity.evaluations:
+                evaluation_dtos.append(EvaluationMapper.to_dto(eval_entity))
+
+        return Iteration(
+            id=entity.id,
+            stage=stage_dto,
+            video=video_dto,
+            environment=environment_dto,
+            execution_data=execution_data_dto,
+            crf=entity.crf,
+            evaluations=evaluation_dtos,
+        )
 
 
 class JobMapper(AbstractMapper[Job, JobEntity]):
@@ -352,31 +422,38 @@ class JobMapper(AbstractMapper[Job, JobEntity]):
         source_video = VideoMapper.to_entity(
             JobMapper._get_required(dto.source_video, "source_video")
         )
-
         stage_enum = JobMapper._get_required(dto.stage, "stage")
-        stage = JobStageMapper.to_entity(stage_enum)
+        stage_id = LookupCacheRegistry.get_instance().job_stages.get_id(stage_enum)
 
-        segment_dtos = JobMapper._get_required(dto.segments, "segments")
         segment_entities: list[SegmentEntity] = []
-        for segment_dto in segment_dtos:
-            segment_entities.append(SegmentMapper.to_entity(segment_dto))
+        if dto.segments:
+            for segment_dto in dto.segments:
+                segment_entities.append(SegmentMapper.to_entity(segment_dto))
 
         return JobEntity(
             id=dto.id,
             source_video=source_video,
-            stage=stage,
+            stage_id=stage_id,
             segments=segment_entities,
-            created_datetime_utc=JobMapper._get_required(dto.created_datetime_utc, "created_datetime_utc"),
+            created_datetime_utc=JobMapper._get_required(
+                dto.created_datetime_utc, "created_datetime_utc"
+            ),
             total_time_seconds=dto.total_time_seconds
         )
 
     @staticmethod
     def to_dto(entity: JobEntity) -> Job:
-        source_video_dto = VideoMapper.to_dto(entity.source_video)
-        stage_dto = JobStageMapper.to_dto(entity.stage)
+        source_video_dto = VideoMapper.to_dto(entity.source_video) if entity.source_video else None
+        stage_dto = (
+            LookupCacheRegistry.get_instance().job_stages.get_enum(entity.stage_id)
+            if entity.stage_id is not None
+            else None
+        )
+
         segment_dtos: list[Segment] = []
-        for segment_entity in entity.segments:
-            segment_dtos.append(SegmentMapper.to_dto(segment_entity))
+        if entity.segments:
+            for segment_entity in entity.segments:
+                segment_dtos.append(SegmentMapper.to_dto(segment_entity))
 
         return Job(
             id=entity.id,
@@ -384,21 +461,8 @@ class JobMapper(AbstractMapper[Job, JobEntity]):
             stage=stage_dto,
             segments=segment_dtos,
             created_datetime_utc=entity.created_datetime_utc,
-            total_time_seconds=entity.total_time_seconds
+            total_time_seconds=entity.total_time_seconds,
         )
-
-
-class JobStageMapper(AbstractMapper[JobStage, JobStagesEntity]):
-    @staticmethod
-    def to_entity(dto: JobStage) -> JobStagesEntity:
-        stage_id = JobStagesCache.get_instance().get_id(dto)
-        return JobStagesEntity(id=stage_id, name=dto.name)
-
-    @staticmethod
-    def to_dto(entity: JobStagesEntity) -> JobStage:
-        cache: JobStagesCache = JobStagesCache.get_instance()
-        stage_entity_id = JobStageMapper._get_required(entity.id, "stage_entity.id")
-        return cache.get_stage(stage_entity_id)
 
 
 class PlaybackMapper(AbstractMapper[Playback, PlaybackEntity]):
@@ -406,10 +470,12 @@ class PlaybackMapper(AbstractMapper[Playback, PlaybackEntity]):
     def to_entity(dto: Playback) -> PlaybackEntity:
         return PlaybackEntity(
             id=dto.id,
-            duration_seconds=PlaybackMapper._get_required(dto.duration_seconds, "duration_seconds"),
+            duration_seconds=PlaybackMapper._get_required(
+                dto.duration_seconds, "duration_seconds"
+            ),
             frames_counted=dto.frames_counted,
             avg_frame_rate=dto.avg_frame_rate,
-            r_frame_rate=dto.r_frame_rate
+            r_frame_rate=dto.r_frame_rate,
         )
 
     @staticmethod
@@ -419,71 +485,96 @@ class PlaybackMapper(AbstractMapper[Playback, PlaybackEntity]):
             duration_seconds=entity.duration_seconds,
             frames_counted=entity.frames_counted,
             avg_frame_rate=entity.avg_frame_rate,
-            r_frame_rate=entity.r_frame_rate
+            r_frame_rate=entity.r_frame_rate,
         )
 
 
 class SegmentMapper(AbstractMapper[Segment, SegmentEntity]):
     @staticmethod
     def to_entity(dto: Segment) -> SegmentEntity:
-        job_entity = JobMapper.to_entity(
-            SegmentMapper._get_required(dto.job, "job")
-        )
+        status_enum = SegmentMapper._get_required(dto.status, "status")
+        status_id = LookupCacheRegistry.get_instance().segment_statuses.get_id(status_enum)
 
-        status_entity = SegmentStatusMapper.to_entity(
-            SegmentMapper._get_required(dto.status, "status")
-        )
-
-        iteration_dtos = SegmentMapper._get_required(dto.iterations, "iterations")
         iteration_entities: list[IterationEntity] = []
-        for iteration_dto in iteration_dtos:
-            iteration_entities.append(IterationMapper.to_entity(iteration_dto))
+        if dto.iterations:
+            for iteration_dto in dto.iterations:
+                iteration_entities.append(IterationMapper.to_entity(iteration_dto))
 
         return SegmentEntity(
             id=dto.id,
-            job=job_entity,
             from_frame=SegmentMapper._get_required(dto.from_frame, "from_frame"),
             to_frame=SegmentMapper._get_required(dto.to_frame, "to_frame"),
-            status=status_entity,
+            status_id=status_id,
             iterations=iteration_entities,
-            total_time_seconds=dto.total_time_seconds
+            total_time_seconds=dto.total_time_seconds,
         )
 
     @staticmethod
     def to_dto(entity: SegmentEntity) -> Segment:
-        job_dto = JobMapper.to_dto(entity.job)
-        status_dto = SegmentStatusMapper.to_dto(entity.status)
+        status_dto = (
+            LookupCacheRegistry.get_instance().segment_statuses.get_enum(entity.status_id)
+            if entity.status_id is not None
+            else None
+        )
+
         iteration_dtos: list[Iteration] = []
-        for iteration_entity in entity.iterations:
-            iteration_dtos.append(IterationMapper.to_dto(iteration_entity))
+        if entity.iterations:
+            for iteration_entity in entity.iterations:
+                iteration_dtos.append(IterationMapper.to_dto(iteration_entity))
 
         return Segment(
             id=entity.id,
-            job=job_dto,
             from_frame=entity.from_frame,
             to_frame=entity.to_frame,
             status=status_dto,
             iterations=iteration_dtos,
-            total_time_seconds=entity.total_time_seconds
+            total_time_seconds=entity.total_time_seconds,
         )
-
-class SegmentStatusMapper(AbstractMapper[SegmentStatus, SegmentStatusesEntity]):
-    @staticmethod
-    def to_entity(dto: SegmentStatus) -> SegmentStatusesEntity:
-        pass
-
-    @staticmethod
-    def to_dto(entity: SegmentStatusesEntity) -> SegmentStatus:
-        pass
-
-
 
 
 class VideoMapper(AbstractMapper[Video, VideoEntity]):
     @staticmethod
     def to_entity(dto: Video) -> VideoEntity:
-        pass
+        file = FileMapper.to_entity(dto.file) if dto.file else None
+        display = DisplayMapper.to_entity(dto.display) if dto.display else None
+        playback = PlaybackMapper.to_entity(dto.playback) if dto.playback else None
+        encoding = EncodingMapper.to_entity(dto.encoding) if dto.encoding else None
+        color = ColorMapper.to_entity(dto.color) if dto.color else None
+        embedded_metadata = (
+            EmbeddedMetadataMapper.to_entity(dto.embedded_metadata)
+            if dto.embedded_metadata
+            else None
+        )
+
+        return VideoEntity(
+            id=dto.id,
+            file=file,
+            display=display,
+            playback=playback,
+            encoding=encoding,
+            color=color,
+            embedded_metadata=embedded_metadata,
+        )
 
     @staticmethod
     def to_dto(entity: VideoEntity) -> Video:
-        pass
+        file_dto = FileMapper.to_dto(entity.file) if entity.file else None
+        display_dto = DisplayMapper.to_dto(entity.display) if entity.display else None
+        playback_dto = PlaybackMapper.to_dto(entity.playback) if entity.playback else None
+        encoding_dto = EncodingMapper.to_dto(entity.encoding) if entity.encoding else None
+        color_dto = ColorMapper.to_dto(entity.color) if entity.color else None
+        embedded_metadata_dto = (
+            EmbeddedMetadataMapper.to_dto(entity.embedded_metadata)
+            if entity.embedded_metadata
+            else None
+        )
+
+        return Video(
+            id=entity.id,
+            file=file_dto,
+            display=display_dto,
+            playback=playback_dto,
+            encoding=encoding_dto,
+            color=color_dto,
+            embedded_metadata=embedded_metadata_dto,
+        )

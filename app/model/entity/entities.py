@@ -12,7 +12,7 @@ class Base(DeclarativeBase):
 
 class FileEntity(Base):
     __tablename__ = "file"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     file_name: Mapped[str] = mapped_column(String, nullable=False)
     absolute_path: Mapped[str] = mapped_column(String, nullable=False)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -21,7 +21,7 @@ class FileEntity(Base):
 
 class DisplayEntity(Base):
     __tablename__ = "display"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     width_px: Mapped[int] = mapped_column(Integer, nullable=False)
     height_px: Mapped[int] = mapped_column(Integer, nullable=False)
     display_aspect_ratio: Mapped[str] = mapped_column(String, nullable=False)
@@ -32,7 +32,7 @@ class DisplayEntity(Base):
 
 class PlaybackEntity(Base):
     __tablename__ = "playback"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     duration_seconds: Mapped[float] = mapped_column(Float, nullable=False)
     frames_counted: Mapped[int | None] = mapped_column(Integer)
     avg_frame_rate: Mapped[str | None] = mapped_column(String)
@@ -41,7 +41,7 @@ class PlaybackEntity(Base):
 
 class EncodingEntity(Base):
     __tablename__ = "encoding"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     codec: Mapped[str] = mapped_column(String, nullable=False)
     preset: Mapped[str | None] = mapped_column(String)
     encoder: Mapped[str | None] = mapped_column(String)
@@ -49,14 +49,14 @@ class EncodingEntity(Base):
 
 class CpuEntity(Base):
     __tablename__ = "cpu"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     cpu_name: Mapped[str] = mapped_column(String, nullable=False)
     cpu_threads: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class EnvironmentEntity(Base):
     __tablename__ = "environment"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     firefly_version: Mapped[str] = mapped_column(String, nullable=False)
     ffmpeg_version: Mapped[str] = mapped_column(String, nullable=False)
     compression_engine_version: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -64,26 +64,26 @@ class EnvironmentEntity(Base):
 
 class EvaluationMetricsEntity(Base):
     __tablename__ = "evaluation_metrics"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     version: Mapped[str | None] = mapped_column(String)
 
 
 class JobStagesEntity(Base):
     __tablename__ = "job_stages"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class SegmentStatusesEntity(Base):
     __tablename__ = "segment_statuses"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class IterationStagesEntity(Base):
     __tablename__ = "iteration_stages"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
 
 
@@ -94,25 +94,25 @@ class SchemaEntity(Base):
 
 class HdrFormatEntity(Base):
     __tablename__ = "hdr_format"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class ColorStandardsEntity(Base):
     __tablename__ = "color_standards"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class ColorRangesEntity(Base):
     __tablename__ = "color_ranges"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class ColorEntity(Base):
     __tablename__ = "color"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     hdr_format_id: Mapped[int | None] = mapped_column(ForeignKey("hdr_format.id"))
     color_primaries_id: Mapped[int | None] = mapped_column(ForeignKey("color_standards.id"))
     color_trc_id: Mapped[int | None] = mapped_column(ForeignKey("color_standards.id"))
@@ -139,7 +139,7 @@ class ColorEntity(Base):
 
 class EmbeddedMetadataEntity(Base):
     __tablename__ = "embedded_metadata"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     encodes_count: Mapped[int] = mapped_column(Integer, nullable=False)
     last_encode_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     source_video_sha256_hash: Mapped[str] = mapped_column(String, nullable=False)
@@ -150,7 +150,7 @@ class EmbeddedMetadataEntity(Base):
 
 class VideoEntity(Base):
     __tablename__ = "video"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     file_id: Mapped[int | None] = mapped_column(ForeignKey("file.id"))
     display_id: Mapped[int | None] = mapped_column(ForeignKey("display.id"))
     playback_id: Mapped[int | None] = mapped_column(ForeignKey("playback.id"))
@@ -168,7 +168,7 @@ class VideoEntity(Base):
 
 class JobEntity(Base):
     __tablename__ = "job"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     source_video_id: Mapped[int] = mapped_column(ForeignKey("video.id"), nullable=False)
     stage_id: Mapped[int] = mapped_column(ForeignKey("job_stages.id"), nullable=False)
     created_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -183,7 +183,7 @@ class JobEntity(Base):
 
 class SegmentEntity(Base):
     __tablename__ = "segments"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("job.id"), nullable=False)
     from_frame: Mapped[int] = mapped_column(Integer, nullable=False)
     to_frame: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -199,7 +199,7 @@ class SegmentEntity(Base):
 
 class ExecutionDataEntity(Base):
     __tablename__ = "execution_data"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     ffmpeg_command_used: Mapped[str] = mapped_column(String, nullable=False)
     finished_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     encoding_wall_time_seconds: Mapped[float] = mapped_column(Float, nullable=False)
@@ -219,7 +219,7 @@ class ExecutionDataEntity(Base):
 
 class IterationEntity(Base):
     __tablename__ = "iteration"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     segment_id: Mapped[int] = mapped_column(ForeignKey("segments.id"), nullable=False)
     stage_id: Mapped[int] = mapped_column(ForeignKey("iteration_stages.id"), nullable=False)
     video_id: Mapped[int] = mapped_column(ForeignKey("video.id"), nullable=False)
@@ -239,7 +239,7 @@ class IterationEntity(Base):
 
 class EvaluationEntity(Base):
     __tablename__ = "evaluation"
-    id: Mapped[int | None] = mapped_column(primary_key=True)
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     iteration_id: Mapped[int] = mapped_column(ForeignKey("iteration.id"), nullable=False)
     metric_id: Mapped[int] = mapped_column(ForeignKey("evaluation_metrics.id"), nullable=False)
     score: Mapped[float] = mapped_column(Float, nullable=False)

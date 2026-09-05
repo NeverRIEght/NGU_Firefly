@@ -30,9 +30,11 @@ class LookupCacheRegistry:
         self.color_ranges = EnumLookupCache[ColorRange, ColorRangesEntity](ColorRange, ColorRangesEntity)
         self.color_standards = EnumLookupCache[ColorStandard, ColorStandardsEntity](ColorStandard, ColorStandardsEntity)
         self.hdr_formats = EnumLookupCache[HdrFormat, HdrFormatEntity](HdrFormat, HdrFormatEntity)
-        self.iteration_stages = EnumLookupCache[IterationStage, IterationStagesEntity](IterationStage, IterationStagesEntity)
+        self.iteration_stages = EnumLookupCache[IterationStage, IterationStagesEntity](IterationStage,
+                                                                                       IterationStagesEntity)
         self.job_stages = EnumLookupCache[JobStage, JobStagesEntity](JobStage, JobStagesEntity)
-        self.segment_statuses = EnumLookupCache[SegmentStatus, SegmentStatusesEntity](SegmentStatus, SegmentStatusesEntity)
+        self.segment_statuses = EnumLookupCache[SegmentStatus, SegmentStatusesEntity](SegmentStatus,
+                                                                                      SegmentStatusesEntity)
 
     @classmethod
     def get_instance(cls) -> "LookupCacheRegistry":

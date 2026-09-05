@@ -22,17 +22,19 @@ class DatabaseManager:
             connect_args={"check_same_thread": False}
         )
 
-        @event.listens_for(self._engine, "connect")
-        def set_sqlite_pragma(dbapi_connection, connection_record):
-            cursor = dbapi_connection.cursor()
-            cursor.execute("PRAGMA journal_mode=WAL")
-            cursor.execute("PRAGMA foreign_keys=ON")
-            cursor.close()
+        event.listen(self._engine, "connect", self._set_sqlite_pragma)
 
         self._session_factory = sessionmaker(
             bind=self._engine,
             expire_on_commit=False
         )
+
+    @staticmethod
+    def _set_sqlite_pragma(dbapi_connection, connection_record) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
     @classmethod
     def get_instance(cls) -> "DatabaseManager":

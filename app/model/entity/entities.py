@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -45,6 +45,7 @@ class EncodingEntity(Base):
     codec: Mapped[str] = mapped_column(String, nullable=False)
     preset: Mapped[str | None] = mapped_column(String)
     encoder: Mapped[str | None] = mapped_column(String)
+    average_bitrate_kilobits_per_second: Mapped[float | None] = mapped_column(Float)
 
 
 class CpuEntity(Base):
@@ -170,11 +171,14 @@ class JobEntity(Base):
     __tablename__ = "job"
     id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     source_video_id: Mapped[int] = mapped_column(ForeignKey("video.id"), nullable=False)
+    output_video_id: Mapped[int | None] = mapped_column(ForeignKey("video.id"))
     stage_id: Mapped[int] = mapped_column(ForeignKey("job_stages.id"), nullable=False)
     created_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    is_legacy_import: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     total_time_seconds: Mapped[float | None] = mapped_column(Float)
 
-    source_video: Mapped[VideoEntity] = relationship()
+    source_video: Mapped[VideoEntity] = relationship(foreign_keys=[source_video_id])
+    output_video: Mapped[VideoEntity | None] = relationship(foreign_keys=[output_video_id])
     stage: Mapped[JobStagesEntity] = relationship()
     segments: Mapped[list[SegmentEntity]] = relationship(
         back_populates="job", cascade="all, delete-orphan"
@@ -199,12 +203,19 @@ class SegmentEntity(Base):
 
 class ExecutionDataEntity(Base):
     __tablename__ = "execution_data"
+    __table_args__ = (
+        CheckConstraint(
+            "is_legacy_import = 1 OR encoding_cpu_time_seconds IS NOT NULL",
+            name="chk_cpu_time",
+        ),
+    )
+
     id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     ffmpeg_command_used: Mapped[str] = mapped_column(String, nullable=False)
     finished_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     encoding_wall_time_seconds: Mapped[float] = mapped_column(Float, nullable=False)
     evaluation_wall_time_seconds: Mapped[float | None] = mapped_column(Float)
-    encoding_cpu_time_seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    encoding_cpu_time_seconds: Mapped[float | None] = mapped_column(Float)
     evaluation_cpu_time_seconds: Mapped[float | None] = mapped_column(Float)
     total_wall_time_seconds: Mapped[float | None] = mapped_column(Float)
     total_cpu_time_seconds: Mapped[float | None] = mapped_column(Float)
@@ -212,6 +223,7 @@ class ExecutionDataEntity(Base):
     evaluation_cpu_threads_used: Mapped[int | None] = mapped_column(Integer)
     encoding_cpu_id: Mapped[int] = mapped_column(ForeignKey("cpu.id"), nullable=False)
     evaluation_cpu_id: Mapped[int | None] = mapped_column(ForeignKey("cpu.id"))
+    is_legacy_import: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     encoding_cpu: Mapped[CpuEntity] = relationship(foreign_keys=[encoding_cpu_id])
     evaluation_cpu: Mapped[CpuEntity | None] = relationship(foreign_keys=[evaluation_cpu_id])

@@ -206,7 +206,8 @@ class EncodingMapper(AbstractMapper[Encoding, EncodingEntity]):
             id=dto.id,
             codec=EncodingMapper._get_required(dto.codec, "codec"),
             preset=dto.preset,
-            encoder=dto.encoder
+            encoder=dto.encoder,
+            average_bitrate_kilobits_per_second=dto.average_bitrate_kilobits_per_second,
         )
 
     @staticmethod
@@ -215,7 +216,8 @@ class EncodingMapper(AbstractMapper[Encoding, EncodingEntity]):
             id=entity.id,
             codec=entity.codec,
             preset=entity.preset,
-            encoder=entity.encoder
+            encoder=entity.encoder,
+            average_bitrate_kilobits_per_second=entity.average_bitrate_kilobits_per_second,
         )
 
 
@@ -289,6 +291,12 @@ class ExecutionDataMapper(AbstractMapper[ExecutionData, ExecutionDataEntity]):
         )
         evaluation_cpu = CpuMapper.to_entity(dto.evaluation_cpu) if dto.evaluation_cpu else None
 
+        encoding_cpu_time = dto.encoding_cpu_time_seconds
+        if not dto.is_legacy_import:
+            encoding_cpu_time = ExecutionDataMapper._get_required(
+                dto.encoding_cpu_time_seconds, "encoding_cpu_time_seconds"
+            )
+
         return ExecutionDataEntity(
             id=dto.id,
             ffmpeg_command_used=ExecutionDataMapper._get_required(
@@ -301,9 +309,7 @@ class ExecutionDataMapper(AbstractMapper[ExecutionData, ExecutionDataEntity]):
                 dto.encoding_wall_time_seconds, "encoding_wall_time_seconds"
             ),
             evaluation_wall_time_seconds=dto.evaluation_wall_time_seconds,
-            encoding_cpu_time_seconds=ExecutionDataMapper._get_required(
-                dto.encoding_cpu_time_seconds, "encoding_cpu_time_seconds"
-            ),
+            encoding_cpu_time_seconds=encoding_cpu_time,
             evaluation_cpu_time_seconds=dto.evaluation_cpu_time_seconds,
             total_wall_time_seconds=dto.total_wall_time_seconds,
             total_cpu_time_seconds=dto.total_cpu_time_seconds,
@@ -313,6 +319,7 @@ class ExecutionDataMapper(AbstractMapper[ExecutionData, ExecutionDataEntity]):
             evaluation_cpu_threads_used=dto.evaluation_cpu_threads_used,
             encoding_cpu=encoding_cpu,
             evaluation_cpu=evaluation_cpu,
+            is_legacy_import=dto.is_legacy_import,
         )
 
     @staticmethod
@@ -330,7 +337,8 @@ class ExecutionDataMapper(AbstractMapper[ExecutionData, ExecutionDataEntity]):
             encoding_cpu_threads_used=entity.encoding_cpu_threads_used,
             evaluation_cpu_threads_used=entity.evaluation_cpu_threads_used,
             encoding_cpu=CpuMapper.to_dto(entity.encoding_cpu) if entity.encoding_cpu else None,
-            evaluation_cpu=CpuMapper.to_dto(entity.evaluation_cpu) if entity.evaluation_cpu else None
+            evaluation_cpu=CpuMapper.to_dto(entity.evaluation_cpu) if entity.evaluation_cpu else None,
+            is_legacy_import=entity.is_legacy_import,
         )
 
 
@@ -422,6 +430,11 @@ class JobMapper(AbstractMapper[Job, JobEntity]):
         source_video = VideoMapper.to_entity(
             JobMapper._get_required(dto.source_video, "source_video")
         )
+        output_video = (
+            VideoMapper.to_entity(dto.output_video)
+            if dto.output_video
+            else None
+        )
         stage_enum = JobMapper._get_required(dto.stage, "stage")
         stage_id = LookupCacheRegistry.get_instance().job_stages.get_id(stage_enum)
 
@@ -433,17 +446,20 @@ class JobMapper(AbstractMapper[Job, JobEntity]):
         return JobEntity(
             id=dto.id,
             source_video=source_video,
+            output_video=output_video,
             stage_id=stage_id,
             segments=segment_entities,
             created_datetime_utc=JobMapper._get_required(
                 dto.created_datetime_utc, "created_datetime_utc"
             ),
-            total_time_seconds=dto.total_time_seconds
+            is_legacy_import=dto.is_legacy_import,
+            total_time_seconds=dto.total_time_seconds,
         )
 
     @staticmethod
     def to_dto(entity: JobEntity) -> Job:
         source_video_dto = VideoMapper.to_dto(entity.source_video) if entity.source_video else None
+        output_video_dto = VideoMapper.to_dto(entity.output_video) if entity.output_video else None
         stage_dto = (
             LookupCacheRegistry.get_instance().job_stages.get_enum(entity.stage_id)
             if entity.stage_id is not None
@@ -458,9 +474,11 @@ class JobMapper(AbstractMapper[Job, JobEntity]):
         return Job(
             id=entity.id,
             source_video=source_video_dto,
+            output_video=output_video_dto,
             stage=stage_dto,
             segments=segment_dtos,
             created_datetime_utc=entity.created_datetime_utc,
+            is_legacy_import=entity.is_legacy_import,
             total_time_seconds=entity.total_time_seconds,
         )
 

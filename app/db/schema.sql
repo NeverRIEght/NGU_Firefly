@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS "encoding" (
 	"codec" TEXT NOT NULL,
 	"preset" TEXT,
 	"encoder" TEXT,
+	"average_bitrate_kilobits_per_second" REAL,
 	PRIMARY KEY("id")
 );
 
@@ -135,11 +136,15 @@ CREATE TABLE IF NOT EXISTS "embedded_metadata" (
 CREATE TABLE IF NOT EXISTS "job" (
 	"id" INTEGER NOT NULL,
 	"source_video_id" INTEGER NOT NULL,
+	"output_video_id" INTEGER,
 	"stage_id" INTEGER NOT NULL,
 	"created_datetime_utc" DATETIME NOT NULL,
+	"is_legacy_import" INTEGER NOT NULL DEFAULT 0,
 	"total_time_seconds" REAL,
 	PRIMARY KEY("id"),
     FOREIGN KEY ("source_video_id") REFERENCES "video"("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION,
+    FOREIGN KEY ("output_video_id") REFERENCES "video"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION,
 	FOREIGN KEY ("stage_id") REFERENCES "job_stages"("id")
 	ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -190,7 +195,7 @@ CREATE TABLE IF NOT EXISTS "execution_data" (
     "encoding_wall_time_seconds" REAL NOT NULL,
     "evaluation_wall_time_seconds" REAL,
 
-	"encoding_cpu_time_seconds" REAL NOT NULL,
+	"encoding_cpu_time_seconds" REAL,
     "evaluation_cpu_time_seconds" REAL,
 
 	"total_wall_time_seconds" REAL,
@@ -201,12 +206,14 @@ CREATE TABLE IF NOT EXISTS "execution_data" (
 
     "encoding_cpu_id" INTEGER NOT NULL,
     "evaluation_cpu_id" INTEGER,
+    "is_legacy_import" INTEGER NOT NULL DEFAULT 0,
 
 	PRIMARY KEY("id"),
     FOREIGN KEY ("encoding_cpu_id") REFERENCES "cpu"("id")
     ON UPDATE NO ACTION ON DELETE NO ACTION,
     FOREIGN KEY ("evaluation_cpu_id") REFERENCES "cpu"("id")
-    ON UPDATE NO ACTION ON DELETE NO ACTION
+    ON UPDATE NO ACTION ON DELETE NO ACTION,
+    CONSTRAINT "chk_cpu_time" CHECK ("is_legacy_import" = 1 OR "encoding_cpu_time_seconds" IS NOT NULL)
 );
 
 CREATE TABLE IF NOT EXISTS "iteration" (

@@ -83,6 +83,7 @@ class Encoding(BaseModel):
     codec: Optional[str] = None
     preset: Optional[str] = None
     encoder: Optional[str] = None
+    average_bitrate_kilobits_per_second: Optional[float] = None
 
 
 class Environment(BaseModel):
@@ -154,6 +155,7 @@ class ExecutionData(BaseModel):
     evaluation_cpu_threads_used: Optional[int] = None
     encoding_cpu: Optional[Cpu] = None
     evaluation_cpu: Optional[Cpu] = None
+    is_legacy_import: bool = False
 
 
 class Video(BaseModel):
@@ -188,7 +190,9 @@ class Segment(BaseModel):
 class Job(BaseModel):
     id: Optional[int] = None
     source_video: Optional[Video] = None
+    output_video: Optional[Video] = None
     stage: Optional[JobStage] = None
     created_datetime_utc: Optional[datetime] = None
+    is_legacy_import: bool = False
     total_time_seconds: Optional[float] = None
     segments: List[Segment] = Field(default_factory=list)

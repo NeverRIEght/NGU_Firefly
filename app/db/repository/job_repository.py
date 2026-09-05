@@ -28,6 +28,12 @@ class JobRepository(AbstractRepository[Job, JobEntity]):
             joinedload(JobEntity.source_video).joinedload(VideoEntity.encoding),
             joinedload(JobEntity.source_video).joinedload(VideoEntity.color),
             joinedload(JobEntity.source_video).joinedload(VideoEntity.embedded_metadata),
+            joinedload(JobEntity.output_video).joinedload(VideoEntity.file),
+            joinedload(JobEntity.output_video).joinedload(VideoEntity.display),
+            joinedload(JobEntity.output_video).joinedload(VideoEntity.playback),
+            joinedload(JobEntity.output_video).joinedload(VideoEntity.encoding),
+            joinedload(JobEntity.output_video).joinedload(VideoEntity.color),
+            joinedload(JobEntity.output_video).joinedload(VideoEntity.embedded_metadata),
         )
         if include_segments:
             stmt = stmt.options(

@@ -1,3 +1,5 @@
+import os
+import sys
 import threading
 from pathlib import Path
 from typing import Optional
@@ -16,7 +18,9 @@ class ProjectPaths:
 
         self._pyproject_file = self._base_dir / "pyproject.toml"
         self._app_config_file = self._base_dir / "app_config.toml"
+        self._alembic_ini_file = self._base_dir / "alembic.ini"
         self._db_schema_file = self._base_dir / "app" / "db" / "schema.sql"
+        self._default_database_path = self._resolve_default_database_path()
 
     @classmethod
     def _find_base_dir(cls) -> Path:
@@ -43,6 +47,25 @@ class ProjectPaths:
                     cls._instance = ProjectPaths()
         return cls._instance
 
+    @staticmethod
+    def _resolve_default_database_path() -> Path:
+        db_file_name = "firefly.db"
+
+        if sys.platform == "win32":
+            local_app_data = os.environ.get("LOCALAPPDATA")
+            base = Path(local_app_data) if local_app_data else Path.home() / "AppData" / "Local"
+            return base / "firefly" / db_file_name
+        elif sys.platform == "darwin":
+            return Path.home() / "Library" / "Application Support" / "firefly" / db_file_name
+        else:
+            xdg_data = os.environ.get("XDG_DATA_HOME")
+            base = Path(xdg_data) if xdg_data else Path.home() / ".local" / "share"
+            return base / "firefly" / db_file_name
+
+    @property
+    def alembic_ini_file(self) -> Path:
+        return self._alembic_ini_file
+
     @property
     def base_dir(self) -> Path:
         return self._base_dir
@@ -50,6 +73,10 @@ class ProjectPaths:
     @property
     def vmaf_models_dir(self) -> Path:
         return self._vmaf_models_dir
+
+    @property
+    def default_database_path(self) -> Path:
+        return self._default_database_path
 
     @property
     def pyproject_file(self) -> Path:

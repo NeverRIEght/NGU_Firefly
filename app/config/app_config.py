@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -17,6 +18,7 @@ class AppConfig(BaseModel):
 
     input_dir: Path
     output_dir: Path
+    database_dir: Optional[Path] = None
 
     randomize_threads_count: bool = False
     threads_count: int = 0

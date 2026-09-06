@@ -9,6 +9,14 @@ input_dir = "path/to/your/input_directory"
 # Value: path to existing directory.
 output_dir = "path/to/your/output_directory"
 
+# Directory where Firefly will be store database.
+# WARNING: If left unset or commented out, the database defaults to your OS user data directory on your
+# primary system drive (e.g. C:\Users\<User>\AppData\Local\firefly on Windows, ~/Library/Application Support/firefly on macOS).
+# If your system drive has limited free space, specify a directory on a secondary drive here.
+# Expected database size is under 1 GB, but it may grow larger if you process a lot of videos.
+# Value: path to directory.
+# database_dir = "path/to/your/directory"
+
 # Random CPU threads mode. Used to capture more diverse performance results.
 # Will use a random number of CPU threads between 1 and actual number of CPU cores.
 # The presence of each number of threads in the range is not guaranteed.

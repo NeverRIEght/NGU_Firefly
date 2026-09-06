@@ -20,6 +20,23 @@ class ConfigValidator:
             log.warning(f"Output directory does not exist: {config.output_dir}. Will create it.")
             config.output_dir.mkdir(parents=True, exist_ok=True)
 
+        if config.database_dir is not None:
+            if str(config.database_dir).strip() in ("", "."):
+                raise ValueError(
+                    "database_dir in configuration cannot be empty. "
+                    "Either comment it out in app_config.toml to use the default system drive, "
+                    "or specify a valid directory path."
+                )
+            if not file_utils.check_directory_exists(config.database_dir):
+                log.warning(f"Database directory does not exist: {config.database_dir}. Will create it.")
+                try:
+                    config.database_dir.mkdir(parents=True, exist_ok=True)
+                except Exception as e:
+                    raise ValueError(
+                        f"Custom database directory does not exist and cannot be created: {config.database_dir}."
+                        f" Error: {e}"
+                    )
+
         if config.threads_count < 0:
             raise ValueError("Threads count must be a positive integer.")
         if config.threads_count == 0:

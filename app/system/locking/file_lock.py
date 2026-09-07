@@ -1,9 +1,10 @@
 import logging
 from pathlib import Path
 from typing import Optional
-from filelock import FileLock, Timeout, BaseFileLock
 
-from app.locking.lock_mode import LockMode
+from filelock import BaseFileLock, FileLock, Timeout
+
+from app.system.locking import LockMode
 
 log = logging.getLogger(__name__)
 

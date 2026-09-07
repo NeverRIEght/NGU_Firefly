@@ -1,10 +1,10 @@
 import logging
 from pathlib import Path
-from typing import Optional, ContextManager
+from typing import ContextManager, Optional
 
 from app.config.lock_config import LockConfig
-from app.locking.lock_mode import LockMode
-from app.locking.file_lock import ManagedFileLock
+from app.system.locking import LockMode
+from app.system.locking.file_lock import ManagedFileLock
 
 log = logging.getLogger(__name__)
 

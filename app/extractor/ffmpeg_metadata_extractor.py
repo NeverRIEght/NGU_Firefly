@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Set
 
-from app.locking import LockManager, LockMode
+from app.system.locking import LockManager, LockMode
 
 log = logging.getLogger(__name__)
 

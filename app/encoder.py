@@ -6,11 +6,10 @@ from filelock import Timeout as TimeoutException
 from app import file_utils, json_serializer
 from app.config.config_manager import ConfigManager
 from app.encoding.command_composer import CommandComposer
-from app.extractor import video_attributes_extractor, ffmpeg_metadata_extractor, environment_extractor
-from app.locking import LockManager, LockMode
+from app.extractor import environment_extractor, ffmpeg_metadata_extractor, video_attributes_extractor
 from app.model.encoder_job_context import EncoderJob
 from app.model.json.encoder_settings import EncoderSettings
-from app.model.json.encoding_stage import EncodingStageNamesEnum, EncodingStage
+from app.model.json.encoding_stage import EncodingStage, EncodingStageNamesEnum
 from app.model.json.environment import Environment
 from app.model.json.execution_data import ExecutionData
 from app.model.json.file_attributes import FileAttributes
@@ -19,6 +18,7 @@ from app.model.json.video_embedded_metadata import VideoEmbeddedMetadata
 from app.os_resources import os_resources_utils
 from app.os_resources.exceptions import LowResourcesException
 from app.os_resources.os_resources_utils import offload_if_memory_low
+from app.system.locking import LockManager, LockMode
 from app.vmaf_comparator import calculate_vmaf
 
 log = logging.getLogger(__name__)

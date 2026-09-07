@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
 
-from app.locking import LockManager, LockMode
 from app.model.json.job_data import JobData
+from app.system.locking import LockManager, LockMode
 
 log = logging.getLogger(__name__)
 

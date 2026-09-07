@@ -7,12 +7,12 @@ from pathlib import Path
 
 from app import file_utils
 from app.config.config_manager import ConfigManager
-from app.locking import LockManager, LockMode
 from app.model.json.video_attributes import VideoAttributes
 from app.os_resources import os_resources_utils
 from app.os_resources.exceptions import LowResourcesException
 from app.os_resources.os_resources_utils import offload_if_memory_low
 from app.project_paths import ProjectPaths
+from app.system.locking import LockManager, LockMode
 
 log = logging.getLogger(__name__)
 

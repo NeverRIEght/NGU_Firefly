@@ -15,10 +15,8 @@ from app.model.json.execution_data import ExecutionData
 from app.model.json.file_attributes import FileAttributes
 from app.model.json.iteration import Iteration
 from app.model.json.video_embedded_metadata import VideoEmbeddedMetadata
-from app.os_resources import os_resources_utils
-from app.os_resources.exceptions import LowResourcesException
-from app.os_resources.os_resources_utils import offload_if_memory_low
 from app.system.locking import LockManager, LockMode
+from app.system.os_resources import LowResourcesException, offload_if_memory_low, os_resources_utils
 from app.vmaf_comparator import calculate_vmaf
 
 log = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 import logging
 import subprocess
 
-from app.os_resources.exceptions import LowResourcesException
+from app.system.os_resources import LowResourcesException
 
 log = logging.getLogger(__name__)
 

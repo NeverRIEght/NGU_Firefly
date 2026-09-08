@@ -8,7 +8,7 @@ from filelock import Timeout as TimeoutException
 
 from app import encoder, file_utils, job_composer, job_validator, json_serializer
 from app.config.config_manager import ConfigManager
-from app.extractor import ffmpeg_metadata_extractor, video_attributes_extractor
+from app.extractor import FfmpegValidationError, FfmpegValidator, ffmpeg_metadata_extractor, video_attributes_extractor
 from app.filtering.job_filter import JobFilter
 from app.model.encoder_job_context import EncoderJob
 from app.model.json.encoding_stage import EncodingStageNamesEnum
@@ -51,6 +51,12 @@ def main():
     log.info("%s v.%s", app_config.app_name, app_config.app_version)
     log.info("Current datetime: %s", datetime.now(timezone.utc))
     log.info("Starting session...")
+
+    try:
+        FfmpegValidator.validate_environment()
+    except FfmpegValidationError as e:
+        log.critical("Environment check failed: %s", e)
+        return
 
     try:
         with LockManager.acquire_application_lock(Path(app_config.output_dir)):

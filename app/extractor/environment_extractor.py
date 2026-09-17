@@ -2,19 +2,20 @@ import random
 import re
 import subprocess
 
-from cpuinfo import get_cpu_info
+from app.system.hardware import CpuInfoProvider
 
 
 def get_available_cpu_threads() -> int:
     from app.config.config_manager import ConfigManager
     app_config = ConfigManager.get_config()
+
+    actual_threads = CpuInfoProvider.get_instance().get_thread_count()
+
     if not app_config.randomize_threads_count:
         if app_config.threads_count == 0:
-            return extract_cpu_threads()
+            return actual_threads
         else:
             return app_config.threads_count
-
-    actual_threads = extract_cpu_threads()
 
     possible_options = [1, 2, 4, 8, 12, 16]
     valid_options = [opt for opt in possible_options if opt <= actual_threads]
@@ -41,23 +42,3 @@ def extract_ffmpeg_version() -> str:
 
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "ffmpeg not found or error occurred"
-
-
-def extract_cpu_name() -> str:
-    cpu_info = get_cpu_info()
-    cpu_model = cpu_info['brand_raw']
-
-    if cpu_model:
-        return cpu_model
-    else:
-        return "unknown"
-
-
-def extract_cpu_threads() -> int:
-    cpu_info = get_cpu_info()
-    cpu_threads = cpu_info['count']
-
-    if cpu_threads:
-        return cpu_threads
-    else:
-        return -1

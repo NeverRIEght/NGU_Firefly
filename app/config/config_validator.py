@@ -2,7 +2,7 @@ import logging
 
 from app import file_utils
 from app.config.app_config import AppConfig
-from app.extractor import environment_extractor
+from app.system.hardware import CpuInfoProvider
 
 log = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ class ConfigValidator:
     @staticmethod
     def validate(config: AppConfig) -> AppConfig:
         updates = {}
-        available_threads_count = environment_extractor.extract_cpu_threads()
+        available_threads_count = CpuInfoProvider.get_instance().get_thread_count()
 
         if not file_utils.check_directory_exists(config.input_dir):
             raise ValueError(f"Input directory does not exist: {config.input_dir}")

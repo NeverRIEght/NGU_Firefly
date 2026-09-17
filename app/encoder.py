@@ -1,9 +1,15 @@
 import logging
 import re
+import shlex
+import subprocess
+import time
+from datetime import datetime, timezone
+from pathlib import Path
 
+import numpy as np
 from filelock import Timeout as TimeoutException
 
-from app import file_utils, json_serializer
+from app import file_utils, hashing_service, json_serializer
 from app.config.config_manager import ConfigManager
 from app.encoding.command_composer import CommandComposer
 from app.extractor import environment_extractor, ffmpeg_metadata_extractor, video_attributes_extractor
@@ -15,19 +21,12 @@ from app.model.json.execution_data import ExecutionData
 from app.model.json.file_attributes import FileAttributes
 from app.model.json.iteration import Iteration
 from app.model.json.video_embedded_metadata import VideoEmbeddedMetadata
+from app.system.hardware import CpuInfoProvider
 from app.system.locking import LockManager, LockMode
 from app.system.os_resources import LowResourcesException, offload_if_memory_low, os_resources_utils
 from app.vmaf_comparator import calculate_vmaf
 
 log = logging.getLogger(__name__)
-
-import subprocess
-import time
-from app import hashing_service
-import shlex
-from pathlib import Path
-from datetime import datetime, timezone
-import numpy as np
 
 
 def encode_job(job: EncoderJob):
@@ -283,8 +282,8 @@ def _encode_iteration(job_context: EncoderJob, crf: int) -> Iteration:
                 script_version=app_config.app_version,
                 ffmpeg_version=environment_extractor.extract_ffmpeg_version(),
                 compression_engine_version=app_config.compression_engine_version,
-                cpu_name=environment_extractor.extract_cpu_name(),
-                cpu_threads=environment_extractor.extract_cpu_threads()
+                cpu_name=CpuInfoProvider.get_instance().get_cpu_name(),
+                cpu_threads=CpuInfoProvider.get_instance().get_thread_count()
             ),
             ffmpeg_metadata=ffmpeg_metadata_extractor.extract(output_file_path)
     )

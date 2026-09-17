@@ -91,6 +91,10 @@ class TestConfigBuilder:
         self._updates["encoder_preset"] = preset
         return self
 
+    def with_database_dir(self, path: Path) -> "TestConfigBuilder":
+        self._updates["database_dir"] = path
+        return self
+
     def with_max_encodes_limit(self, limit: int) -> "TestConfigBuilder":
         self._updates["max_encodes_limit"] = limit
         return self

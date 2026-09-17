@@ -9,8 +9,7 @@ log = logging.getLogger(__name__)
 
 class ConfigValidator:
     @staticmethod
-    def validate(config: AppConfig) -> AppConfig:
-        updates = {}
+    def validate(config: AppConfig) -> None:
         available_threads_count = CpuInfoProvider.get_instance().get_thread_count()
 
         if not file_utils.check_directory_exists(config.input_dir):
@@ -37,20 +36,22 @@ class ConfigValidator:
                         f" Error: {e}"
                     )
 
-        if config.threads_count < 0:
-            raise ValueError("Threads count must be a positive integer.")
-        if config.threads_count == 0:
-            log.warning("Threads count is set to 0. Will use all available CPU threads.")
-            updates["threads_count"] = available_threads_count
-        elif config.threads_count > available_threads_count:
-            log.warning("Threads count is too large for the hardware. Using maximum available threads.")
-            updates["threads_count"] = available_threads_count
+        if config.threads_count <= 0:
+            raise ValueError(
+                f"threads_count in configuration cannot be 0 or negative. "
+                f"Your system has {available_threads_count} available threads. Please specify a positive integer."
+            )
+        if config.threads_count > available_threads_count:
+            raise ValueError(
+                f"threads_count in configuration cannot be higher than amount of available threads. "
+                f"Your system has {available_threads_count} available threads. Please specify a positive integer."
+            )
 
         if config.low_resources_restart_delay_seconds < 0.5:
-            log.warning(
-                "Low resources restart delay is lower than safe. Setting to the minimal safe value of 0.5 seconds."
+            raise ValueError(
+                f"low_resources_restart_delay_seconds ({config.low_resources_restart_delay_seconds}) in configuration "
+                f"is lower than the minimal safe value of 0.5 seconds. Please set it to at least 0.5 in app_config.toml."
             )
-            updates["low_resources_restart_delay_seconds"] = 0.5
 
         valid_priorities = {"idle", "below_normal", "normal", "above_normal", "high", "real_time"}
         if config.encoder_process_priority not in valid_priorities:
@@ -59,21 +60,22 @@ class ConfigValidator:
             raise ValueError("Invalid VMAF process priority in configuration.")
 
         if config.ram_monitoring_interval_seconds < 0.5:
-            log.warning("RAM monitoring interval is lower than safe. Setting to the minimal safe value of 0.5 seconds.")
-            updates["ram_monitoring_interval_seconds"] = 0.5
-
-        if config.ram_percent_hard_limit < 0.0 or config.ram_percent_hard_limit >= 100.0:
             raise ValueError(
-                "Invalid RAM percent hard limit in configuration. Expected: 0.0 <= ram_percent_hard_limit < 100.0.")
-        if config.ram_percent_hard_limit == 0:
-            log.warning("RAM percent hard limit is set to 0. Setting to default value of 85.")
-            updates["ram_percent_hard_limit"] = 85.0
+                f"ram_monitoring_interval_seconds ({config.ram_monitoring_interval_seconds}) in configuration "
+                f"is lower than the minimal safe value of 0.5 seconds. Please set it to at least 0.5 in app_config.toml."
+            )
 
-        if config.ram_hard_limit_bytes < 0:
-            raise ValueError("Invalid RAM hard limit bytes in configuration. Expected: ram_hard_limit_bytes >= 0.")
-        if config.ram_hard_limit_bytes == 0:
-            log.warning("RAM hard limit bytes is set to 0. Setting to default value of 500 MB.")
-            updates["ram_hard_limit_bytes"] = 500 * 1024 * 1024
+        if config.ram_percent_hard_limit <= 0.0 or config.ram_percent_hard_limit >= 100.0:
+            raise ValueError(
+                f"Invalid RAM percent hard limit ({config.ram_percent_hard_limit}) in configuration. "
+                f"Expected: 0.0 < ram_percent_hard_limit < 100.0. Please set it to a value between 0.0 and 100.0 in app_config.toml."
+            )
+
+        if config.ram_hard_limit_bytes <= 0:
+            raise ValueError(
+                f"Invalid RAM hard limit bytes ({config.ram_hard_limit_bytes}) in configuration. "
+                f"Please set it to a positive value in app_config.toml."
+            )
 
         if config.crf_min < 0 or config.crf_max > 51 or config.crf_min >= config.crf_max:
             raise ValueError("Invalid CRF range in configuration. Expected: 0 <= crf_min < crf_max <= 51.")
@@ -92,8 +94,3 @@ class ConfigValidator:
         }
         if config.encoder_preset not in valid_presets:
             raise ValueError("Invalid encode preset in configuration.")
-
-        if updates:
-            return config.model_copy(update=updates)
-
-        return config

@@ -8,6 +8,7 @@ from filelock import Timeout as TimeoutException
 
 from app import encoder, file_utils, job_composer, job_validator, json_serializer
 from app.config.config_manager import ConfigManager
+from app.config.config_validator import ConfigValidator
 from app.extractor import FfmpegValidationError, FfmpegValidator, ffmpeg_metadata_extractor, video_attributes_extractor
 from app.filtering.job_filter import JobFilter
 from app.model.encoder_job_context import EncoderJob
@@ -47,6 +48,11 @@ log.addHandler(console_handler)
 
 def main():
     app_config = ConfigManager.get_config()
+    try:
+        ConfigValidator.validate(app_config)
+    except ValueError as e:
+        log.critical("Configuration validation failed: %s", e)
+        return
 
     log.info("%s v.%s", app_config.app_name, app_config.app_version)
     log.info("Current datetime: %s", datetime.now(timezone.utc))

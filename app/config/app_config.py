@@ -21,7 +21,7 @@ class AppConfig(BaseModel):
     database_dir: Optional[Path] = None
 
     randomize_threads_count: bool = False
-    threads_count: int = 0
+    threads_count: int = 4
 
     disable_resources_monitoring: bool = False
     low_resources_restart_delay_seconds: float = 20

@@ -24,11 +24,9 @@ output_dir = "path/to/your/output_directory"
 randomize_threads_count = false
 
 # Number of CPU threads to use. The multithreaded mode is used for both encoding and VMAF calculation.
-# Value: integer from 0 to number of CPU cores.
-# If the value is greater than number of CPU cores, then actual number of CPU cores will be used.
-# If the value is 0, then all available CPU cores will be used.
+# Value: positive integer from 1 to the actual number of CPU cores/threads.
 # This value is ignored if randomize_threads_count=true
-threads_count = 0
+threads_count = 4
 
 # Disable resources monitoring during encoding and VMAF calculation.
 # If false, then CPU and RAM usage will be monitored to stop encoding if OS resources are overused.
@@ -37,14 +35,14 @@ disable_resources_monitoring = true
 
 # Delay in seconds between CPU and RAM usage checks during encoding and VMAF calculation.
 # This value is ignored if disable_resources_monitoring=true
-# Value: float greater than or equal to 0.0
-# If the value is 0.0, then minimal safe delay will be used.
-resource_monitoring_interval_seconds = 2.0
+# Value: float greater than or equal to 0.5
+# Minimal safe value is 0.5, recommended default is 2.0
+ram_monitoring_interval_seconds = 2.0
 
 # Delay in seconds before restarting encoding after resources overuse is detected.
 # This value is ignored if disable_resources_monitoring=true
-# Value: float greater than or equal to 0.0
-# If the value is 0.0, then minimal safe delay will be used.
+# Value: float greater than or equal to 0.5
+# Minimal safe value is 0.5, recommended default is 20.0
 low_resources_restart_delay_seconds = 20.0
 
 # Video encoder process priority in the OS.
@@ -60,15 +58,15 @@ vmaf_process_priority = "idle"
 # Hard limit for RAM usage during encoding and VMAF calculation.
 # If RAM usage exceeds this limit, encoding or VMAF calculation will be stopped and restarted after a delay.
 # This value is ignored if disable_resources_monitoring=true
-# Value: float from 0.0 to 100.0 representing percentage of total RAM
-# If the value is 0.0, then default value (85%) will be used.
+# Value: float from 0.0 (exclusive) to 100.0 (exclusive) representing percentage of total RAM.
+# Minimal safe value is 1.0, recommended default is 85.0
 ram_percent_hard_limit = 85.0
 
 # Hard limit for RAM usage during encoding and VMAF calculation.
 # If RAM usage exceeds this limit, encoding or VMAF calculation will be stopped and restarted after a delay.
 # This value is ignored if disable_resources_monitoring=true
-# Value: integer greater than or equal to 0 representing bytes of RAM
-# If the value is 0, then default value (500 MB) will be used.
+# Value: integer greater than 0 representing bytes of RAM.
+# Minimal safe value is 104857600 (100 MB), recommended default is 524288000 (500 MB).
 ram_hard_limit_bytes = 524288000 # 500 MB
 
 # CRF values for search

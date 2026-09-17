@@ -3,7 +3,6 @@ import tomllib
 from typing import Optional
 
 from app.config.app_config import AppConfig
-from app.config.config_validator import ConfigValidator
 from app.project_paths import ProjectPaths
 
 
@@ -52,11 +51,7 @@ class ConfigManager:
 
         parameters = conf_data.get("params", {})
 
-        raw_config = AppConfig(
+        return AppConfig(
             **metadata,
             **parameters
         )
-
-        validated_config = ConfigValidator.validate(raw_config)
-
-        return validated_config

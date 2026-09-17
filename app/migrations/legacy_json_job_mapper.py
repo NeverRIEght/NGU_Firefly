@@ -415,6 +415,7 @@ class LegacyJsonJobMapper:
             absolute_path=output_dir / file_attrs.file_name,
             file_size_bytes=file_attrs.file_size_bytes,
             sha256_hash=iteration.sha256_hash,
+            file_mtime_nanoseconds=None,
         )
 
         display_dto = LegacyJsonJobMapper._map_display(video_attrs, ffmpeg_meta)
@@ -515,6 +516,7 @@ class LegacyJsonJobMapper:
             absolute_path=input_dir / file_attrs.file_name,
             file_size_bytes=file_attrs.file_size_bytes,
             sha256_hash=source_video.sha256_hash,
+            file_mtime_nanoseconds=None,
         )
 
         display_dto = LegacyJsonJobMapper._map_display(video_attrs, ffmpeg_meta)

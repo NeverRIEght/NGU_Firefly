@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS "job" (
 	"stage_id" INTEGER NOT NULL,
 	"created_datetime_utc" DATETIME NOT NULL,
 	"is_legacy_import" INTEGER NOT NULL DEFAULT 0,
+	"priority" REAL NOT NULL DEFAULT 1.0,
 	"total_time_seconds" REAL,
 	PRIMARY KEY("id"),
     FOREIGN KEY ("source_video_id") REFERENCES "video"("id")

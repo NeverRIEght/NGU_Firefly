@@ -175,6 +175,7 @@ class JobEntity(Base):
     stage_id: Mapped[int] = mapped_column(ForeignKey("job_stages.id"), nullable=False)
     created_datetime_utc: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     is_legacy_import: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    priority: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
     total_time_seconds: Mapped[float | None] = mapped_column(Float)
 
     source_video: Mapped[VideoEntity] = relationship(foreign_keys=[source_video_id])

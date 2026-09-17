@@ -194,5 +194,6 @@ class Job(BaseModel):
     stage: Optional[JobStage] = None
     created_datetime_utc: Optional[datetime] = None
     is_legacy_import: bool = False
+    priority: Optional[float] = None
     total_time_seconds: Optional[float] = None
     segments: List[Segment] = Field(default_factory=list)

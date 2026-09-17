@@ -453,6 +453,9 @@ class JobMapper(AbstractMapper[Job, JobEntity]):
                 dto.created_datetime_utc, "created_datetime_utc"
             ),
             is_legacy_import=dto.is_legacy_import,
+            priority=JobMapper._get_required(
+                dto.priority, "priority"
+            ),
             total_time_seconds=dto.total_time_seconds,
         )
 
@@ -476,6 +479,7 @@ class JobMapper(AbstractMapper[Job, JobEntity]):
             source_video=source_video_dto,
             output_video=output_video_dto,
             stage=stage_dto,
+            priority=entity.priority,
             segments=segment_dtos,
             created_datetime_utc=entity.created_datetime_utc,
             is_legacy_import=entity.is_legacy_import,

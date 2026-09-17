@@ -17,6 +17,7 @@ class FileEntity(Base):
     absolute_path: Mapped[str] = mapped_column(String, nullable=False)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     sha256_hash: Mapped[str | None] = mapped_column(String)
+    file_mtime_nanoseconds: Mapped[int | None] = mapped_column(Integer)
 
 
 class DisplayEntity(Base):

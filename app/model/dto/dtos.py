@@ -105,6 +105,7 @@ class File(BaseModel):
     absolute_path: Optional[Path] = None
     file_size_bytes: Optional[int] = None
     sha256_hash: Optional[str] = None
+    file_mtime_nanoseconds: Optional[int] = None
 
 
 class Playback(BaseModel):
@@ -194,6 +195,6 @@ class Job(BaseModel):
     stage: Optional[JobStage] = None
     created_datetime_utc: Optional[datetime] = None
     is_legacy_import: bool = False
-    priority: Optional[float] = None
+    priority: float = 1.0
     total_time_seconds: Optional[float] = None
     segments: List[Segment] = Field(default_factory=list)

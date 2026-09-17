@@ -351,7 +351,8 @@ class FileMapper(AbstractMapper[File, FileEntity]):
             file_name=FileMapper._get_required(dto.file_name, "file_name"),
             absolute_path=str(absolute_path),
             file_size_bytes=FileMapper._get_required(dto.file_size_bytes, "file_size_bytes"),
-            sha256_hash=dto.sha256_hash
+            sha256_hash=dto.sha256_hash,
+            file_mtime_nanoseconds=dto.file_mtime_nanoseconds,
         )
 
     @staticmethod
@@ -361,7 +362,8 @@ class FileMapper(AbstractMapper[File, FileEntity]):
             file_name=entity.file_name,
             absolute_path=Path(entity.absolute_path) if entity.absolute_path else None,
             file_size_bytes=entity.file_size_bytes,
-            sha256_hash=entity.sha256_hash
+            sha256_hash=entity.sha256_hash,
+            file_mtime_nanoseconds=entity.file_mtime_nanoseconds,
         )
 
 
@@ -453,9 +455,7 @@ class JobMapper(AbstractMapper[Job, JobEntity]):
                 dto.created_datetime_utc, "created_datetime_utc"
             ),
             is_legacy_import=dto.is_legacy_import,
-            priority=JobMapper._get_required(
-                dto.priority, "priority"
-            ),
+            priority=dto.priority if dto.priority is not None else 1.0,
             total_time_seconds=dto.total_time_seconds,
         )
 

@@ -4,7 +4,7 @@ from typing import Optional
 
 from filelock import BaseFileLock, FileLock, Timeout
 
-from app.system.locking import LockMode
+from app.system.locking.lock_mode import LockMode
 
 log = logging.getLogger(__name__)
 

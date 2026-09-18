@@ -5,16 +5,20 @@ from sqlalchemy.orm import Session
 
 from app.db.cache.enum_lookup_cache import EnumLookupCache
 from app.model.dto import (
+    ColorPrimaries,
     ColorRange,
-    ColorStandard,
+    ColorSpace,
+    ColorTransfer,
     HdrFormat,
     IterationStage,
     JobStage,
     SegmentStatus,
 )
 from app.model.entity.entities import (
+    ColorPrimariesEntity,
     ColorRangesEntity,
-    ColorStandardsEntity,
+    ColorSpaceEntity,
+    ColorTransferEntity,
     HdrFormatEntity,
     IterationStagesEntity,
     JobStagesEntity,
@@ -27,14 +31,30 @@ class LookupCacheRegistry:
     _lock = threading.Lock()
 
     def __init__(self):
-        self.color_ranges = EnumLookupCache[ColorRange, ColorRangesEntity](ColorRange, ColorRangesEntity)
-        self.color_standards = EnumLookupCache[ColorStandard, ColorStandardsEntity](ColorStandard, ColorStandardsEntity)
-        self.hdr_formats = EnumLookupCache[HdrFormat, HdrFormatEntity](HdrFormat, HdrFormatEntity)
-        self.iteration_stages = EnumLookupCache[IterationStage, IterationStagesEntity](IterationStage,
-                                                                                       IterationStagesEntity)
-        self.job_stages = EnumLookupCache[JobStage, JobStagesEntity](JobStage, JobStagesEntity)
-        self.segment_statuses = EnumLookupCache[SegmentStatus, SegmentStatusesEntity](SegmentStatus,
-                                                                                      SegmentStatusesEntity)
+        self.color_primaries = EnumLookupCache[ColorPrimaries, ColorPrimariesEntity](
+            ColorPrimaries, ColorPrimariesEntity
+        )
+        self.color_ranges = EnumLookupCache[ColorRange, ColorRangesEntity](
+            ColorRange, ColorRangesEntity
+        )
+        self.color_spaces = EnumLookupCache[ColorSpace, ColorSpaceEntity](
+            ColorSpace, ColorSpaceEntity
+        )
+        self.color_transfers = EnumLookupCache[ColorTransfer, ColorTransferEntity](
+            ColorTransfer, ColorTransferEntity
+        )
+        self.hdr_formats = EnumLookupCache[HdrFormat, HdrFormatEntity](
+            HdrFormat, HdrFormatEntity
+        )
+        self.iteration_stages = EnumLookupCache[IterationStage, IterationStagesEntity](
+            IterationStage, IterationStagesEntity
+        )
+        self.job_stages = EnumLookupCache[JobStage, JobStagesEntity](
+            JobStage, JobStagesEntity
+        )
+        self.segment_statuses = EnumLookupCache[SegmentStatus, SegmentStatusesEntity](
+            SegmentStatus, SegmentStatusesEntity
+        )
 
     @classmethod
     def get_instance(cls) -> "LookupCacheRegistry":
@@ -47,8 +67,10 @@ class LookupCacheRegistry:
     @classmethod
     def init_all(cls, session: Session) -> None:
         registry = cls.get_instance()
+        registry.color_primaries.init(session)
         registry.color_ranges.init(session)
-        registry.color_standards.init(session)
+        registry.color_spaces.init(session)
+        registry.color_transfers.init(session)
         registry.hdr_formats.init(session)
         registry.iteration_stages.init(session)
         registry.job_stages.init(session)

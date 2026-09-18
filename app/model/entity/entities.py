@@ -2,12 +2,40 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    MetaData,
+    String,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+# Standard SQLAlchemy naming convention for constraints.
+# Generates deterministic constraint names required by SQLite batch alterations.
+NAMING_CONVENTION = {
+    # Index (e.g. ix_file_sha256_hash)
+    "ix": "ix_%(column_0_label)s",
+
+    # Unique constraint (e.g. uq_file_absolute_path)
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+
+    # Check constraint (e.g. ck_job_priority)
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+
+    # Foreign key (e.g. fk_color_primaries_id)
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+
+    # Primary key (e.g. pk_color)
+    "pk": "pk_%(table_name)s",
+}
 
 
 class Base(DeclarativeBase):
-    pass
+    metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
 class FileEntity(Base):
@@ -100,8 +128,8 @@ class HdrFormatEntity(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
 
 
-class ColorStandardsEntity(Base):
-    __tablename__ = "color_standards"
+class ColorPrimariesEntity(Base):
+    __tablename__ = "color_primaries"
     id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
 
@@ -112,26 +140,38 @@ class ColorRangesEntity(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
 
 
+class ColorSpaceEntity(Base):
+    __tablename__ = "color_spaces"
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class ColorTransferEntity(Base):
+    __tablename__ = "color_transfers"
+    id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+
+
 class ColorEntity(Base):
     __tablename__ = "color"
     id: Mapped[int | None] = mapped_column(primary_key=True, nullable=False, autoincrement=True)
     hdr_format_id: Mapped[int | None] = mapped_column(ForeignKey("hdr_format.id"))
-    color_primaries_id: Mapped[int | None] = mapped_column(ForeignKey("color_standards.id"))
-    color_trc_id: Mapped[int | None] = mapped_column(ForeignKey("color_standards.id"))
-    colorspace_id: Mapped[int | None] = mapped_column(ForeignKey("color_standards.id"))
+    color_primaries_id: Mapped[int | None] = mapped_column(ForeignKey("color_primaries.id"))
+    color_trc_id: Mapped[int | None] = mapped_column(ForeignKey("color_transfers.id"))
+    colorspace_id: Mapped[int | None] = mapped_column(ForeignKey("color_spaces.id"))
     color_range_id: Mapped[int | None] = mapped_column(ForeignKey("color_ranges.id"))
     max_cll: Mapped[str | None] = mapped_column(String)
     master_display: Mapped[str | None] = mapped_column(String)
     dovi_profile: Mapped[str | None] = mapped_column(String)
 
     hdr_format: Mapped[HdrFormatEntity | None] = relationship()
-    color_primaries: Mapped[ColorStandardsEntity | None] = relationship(
+    color_primaries: Mapped[ColorPrimariesEntity | None] = relationship(
         foreign_keys=[color_primaries_id]
     )
-    color_trc: Mapped[ColorStandardsEntity | None] = relationship(
+    color_trc: Mapped[ColorTransferEntity | None] = relationship(
         foreign_keys=[color_trc_id]
     )
-    colorspace: Mapped[ColorStandardsEntity | None] = relationship(
+    colorspace: Mapped[ColorSpaceEntity | None] = relationship(
         foreign_keys=[colorspace_id]
     )
     color_range: Mapped[ColorRangesEntity | None] = relationship(

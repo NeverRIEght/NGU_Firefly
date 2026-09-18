@@ -5,8 +5,10 @@ from typing import Optional
 
 from app.model.dto import (
     Color,
+    ColorPrimaries,
     ColorRange,
-    ColorStandard,
+    ColorSpace,
+    ColorTransfer,
     Cpu,
     Display,
     EmbeddedMetadata,
@@ -152,17 +154,17 @@ class LegacyJsonJobMapper:
         hdr_format = LegacyJsonJobMapper._map_hdr_format(hdr_types)
 
         primaries = (
-            LegacyJsonJobMapper._map_color_standard(ffmpeg_meta.color_primaries)
+            LegacyJsonJobMapper._map_color_primaries(ffmpeg_meta.color_primaries)
             if ffmpeg_meta
             else None
         )
         trc = (
-            LegacyJsonJobMapper._map_color_standard(ffmpeg_meta.color_trc)
+            LegacyJsonJobMapper._map_color_transfer(ffmpeg_meta.color_trc)
             if ffmpeg_meta
             else None
         )
         colorspace = (
-            LegacyJsonJobMapper._map_color_standard(ffmpeg_meta.colorspace)
+            LegacyJsonJobMapper._map_colorspace(ffmpeg_meta.colorspace)
             if ffmpeg_meta
             else None
         )
@@ -180,16 +182,31 @@ class LegacyJsonJobMapper:
         )
 
     @staticmethod
-    def _map_color_standard(value: Optional[str]) -> Optional[ColorStandard]:
+    def _map_color_primaries(value: Optional[str]) -> Optional[ColorPrimaries]:
         if not value:
             return None
-        cleaned = value.strip().lower().replace(".", "").replace("_", "-")
-        for standard in ColorStandard:
-            if standard.value == cleaned:
-                return standard
-            if standard.value == value.strip().lower():
-                return standard
-        return ColorStandard.UNKNOWN
+        try:
+            return ColorPrimaries(value.strip().lower())
+        except ValueError:
+            return ColorPrimaries.UNKNOWN
+
+    @staticmethod
+    def _map_color_transfer(value: Optional[str]) -> Optional[ColorTransfer]:
+        if not value:
+            return None
+        try:
+            return ColorTransfer(value.strip().lower())
+        except ValueError:
+            return ColorTransfer.UNKNOWN
+
+    @staticmethod
+    def _map_colorspace(value: Optional[str]) -> Optional[ColorSpace]:
+        if not value:
+            return None
+        try:
+            return ColorSpace(value.strip().lower())
+        except ValueError:
+            return ColorSpace.UNKNOWN
 
     @staticmethod
     def _map_display(

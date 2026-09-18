@@ -12,22 +12,32 @@ class ColorRange(str, Enum):
     PC = "pc"
 
 
-class ColorStandard(str, Enum):
+class ColorPrimaries(str, Enum):
     UNKNOWN = "unknown"
     BT709 = "bt709"
-    BT470M = "bt470m"
-    BT470BG = "bt470bg"
+    BT2020 = "bt2020"
     SMPTE170M = "smpte170m"
-    SMPTE240M = "smpte240m"
-    FCC = "fcc"
-    YCGCO = "ycgco"
+    SMPTE431 = "smpte431"
+    SMPTE432 = "smpte432"
+
+
+class ColorTransfer(str, Enum):
+    UNKNOWN = "unknown"
+    BT709 = "bt709"
+    SMPTE2084 = "smpte2084"
+    ARIB_STD_B67 = "arib-std-b67"
+    SMPTE170M = "smpte170m"
+    IEC61966_2_1 = "iec61966-2-1"
+    LINEAR = "linear"
+
+
+class ColorSpace(str, Enum):
+    UNKNOWN = "unknown"
+    BT709 = "bt709"
     BT2020NC = "bt2020nc"
     BT2020C = "bt2020c"
-    SMPTE2085 = "smpte2085"
-    CHROMA_DERIVED_NC = "chroma-derived-nc"
-    CHROMA_DERIVED_C = "chroma-derived-c"
+    SMPTE170M = "smpte170m"
     ICTCP = "ictcp"
-    RGB = "rgb"
 
 
 class HdrFormat(str, Enum):
@@ -119,9 +129,9 @@ class Playback(BaseModel):
 class Color(BaseModel):
     id: Optional[int] = None
     hdr_format: Optional[HdrFormat] = None
-    color_primaries: Optional[ColorStandard] = None
-    color_trc: Optional[ColorStandard] = None
-    colorspace: Optional[ColorStandard] = None
+    color_primaries: Optional[ColorPrimaries] = None
+    color_trc: Optional[ColorTransfer] = None
+    colorspace: Optional[ColorSpace] = None
     color_range: Optional[ColorRange] = None
     max_cll: Optional[str] = None
     master_display: Optional[str] = None

@@ -1,7 +1,9 @@
 from app.model.dto.dtos import (
     Color,
+    ColorPrimaries,
     ColorRange,
-    ColorStandard,
+    ColorSpace,
+    ColorTransfer,
     Cpu,
     Display,
     EmbeddedMetadata,
@@ -24,8 +26,10 @@ from app.model.dto.dtos import (
 
 __all__ = [
     "Color",
+    "ColorPrimaries",
     "ColorRange",
-    "ColorStandard",
+    "ColorSpace",
+    "ColorTransfer",
     "Cpu",
     "Display",
     "EmbeddedMetadata",

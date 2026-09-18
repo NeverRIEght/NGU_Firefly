@@ -51,17 +51,17 @@ class ColorMapper(AbstractMapper[Color, ColorEntity]):
                 else None
             ),
             color_primaries_id=(
-                cache.color_standards.get_id(dto.color_primaries)
+                cache.color_primaries.get_id(dto.color_primaries)
                 if dto.color_primaries is not None
                 else None
             ),
             color_trc_id=(
-                cache.color_standards.get_id(dto.color_trc)
+                cache.color_transfers.get_id(dto.color_trc)
                 if dto.color_trc is not None
                 else None
             ),
             colorspace_id=(
-                cache.color_standards.get_id(dto.colorspace)
+                cache.color_spaces.get_id(dto.colorspace)
                 if dto.colorspace is not None
                 else None
             ),
@@ -86,17 +86,17 @@ class ColorMapper(AbstractMapper[Color, ColorEntity]):
                 else None
             ),
             color_primaries=(
-                cache.color_standards.get_enum(entity.color_primaries_id)
+                cache.color_primaries.get_enum(entity.color_primaries_id)
                 if entity.color_primaries_id is not None
                 else None
             ),
             color_trc=(
-                cache.color_standards.get_enum(entity.color_trc_id)
+                cache.color_transfers.get_enum(entity.color_trc_id)
                 if entity.color_trc_id is not None
                 else None
             ),
             colorspace=(
-                cache.color_standards.get_enum(entity.colorspace_id)
+                cache.color_spaces.get_enum(entity.colorspace_id)
                 if entity.colorspace_id is not None
                 else None
             ),
